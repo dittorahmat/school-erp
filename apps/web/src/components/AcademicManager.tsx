@@ -45,35 +45,35 @@ export function AcademicManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-ui>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <School className="w-5 h-5 text-indigo-600" /> Manajemen Rombongan Belajar (Rombel)
+          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
+            <School className="w-4 h-4 text-[#b8336a]" /> Manajemen Rombongan Belajar (Rombel)
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Tahun Ajaran Aktif: <strong className="text-indigo-600">2025/2026 (Semester Ganjil)</strong>
+          <p className="text-xs text-[#5f6672] mt-0.5">
+            Tahun Ajaran Aktif: <strong className="text-[#b8336a]">2025/2026 (Semester Ganjil)</strong>
           </p>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded bg-[#dcfce7] text-[#14532d]">
           <CheckCircle2 className="w-3.5 h-3.5" /> Kalender Aktif
         </span>
       </div>
 
-      <form onSubmit={handleAddClass} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3">
+      <form onSubmit={handleAddClass} className="p-4 bg-white rounded-lg flex flex-wrap items-center gap-3">
         <input
           type="text"
           value={newClassName}
           onChange={(e) => setNewClassName(e.target.value)}
           placeholder="Nama Rombel (misal: X-MIPA-2)"
-          className="px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
           required
         />
         <select
           value={gradeLevel}
           onChange={(e) => setGradeLevel(Number(e.target.value))}
-          className="px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
         >
           <option value={7}>Kelas 7</option>
           <option value={8}>Kelas 8</option>
@@ -84,23 +84,23 @@ export function AcademicManager() {
         </select>
         <button
           type="submit"
-          className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
+          className="inline-flex items-center gap-1.5 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
         >
-          <Plus className="w-4 h-4" /> Tambah Rombel
+          <Plus className="w-3.5 h-3.5" /> Tambah Rombel
         </button>
       </form>
 
       {loading ? (
-        <div className="p-8 text-center text-slate-400">Memuat data rombel...</div>
+        <div className="p-8 text-center text-xs text-[#5f6672]">Memuat data rombel...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {classrooms.map((cls) => (
-            <div key={cls.id} className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+            <div key={cls.id} className="p-4 bg-white rounded-lg flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-slate-900">{cls.name}</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Tingkat {cls.gradeLevel} &bull; 32 Siswa</p>
+                <h4 className="font-semibold text-xs text-[#111827]">{cls.name}</h4>
+                <p className="text-[11px] text-[#5f6672] mt-0.5">Tingkat {cls.gradeLevel} &bull; 32 Siswa</p>
               </div>
-              <span className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+              <span className="p-2 bg-[#fdf2f7] rounded text-[#b8336a]">
                 <Calendar className="w-4 h-4" />
               </span>
             </div>

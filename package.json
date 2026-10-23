@@ -6,6 +6,9 @@
     "dev": "pnpm --parallel run dev",
     "build": "pnpm --recursive run build",
     "test": "pnpm --recursive run test",
+    "lint:ui": "node .agents/skills/design-taste-frontend/scripts/lint.mjs apps/web/src/App.tsx apps/web/src/components/AcademicManager.tsx apps/web/src/components/AttendanceChecklist.tsx apps/web/src/components/FinanceManager.tsx apps/web/src/components/GradebookManager.tsx apps/web/src/components/LoginPage.tsx apps/web/src/components/ParentPortal.tsx",
+    "check": "pnpm --recursive run build && pnpm --recursive run test && pnpm run lint:ui",
+    "deploy": "pnpm --filter @school-erp/web run build && pnpm --filter @school-erp/api exec wrangler deploy",
     "db:generate": "pnpm --filter @school-erp/db run db:generate",
     "db:migrate": "pnpm --filter @school-erp/db run db:migrate"
   },

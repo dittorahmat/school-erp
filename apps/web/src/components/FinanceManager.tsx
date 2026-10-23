@@ -61,65 +61,65 @@ export function FinanceManager() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-ui>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-indigo-600" /> Keuangan & Tagihan SPP
+          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-[#b8336a]" /> Keuangan & Tagihan SPP
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Pantau dan lakukan pelunasan tagihan sekolah via transfer dan upload bukti bayar ke Cloudflare R2.
+          <p className="text-xs text-[#5f6672] mt-0.5">
+            Pantau dan verifikasi pembayaran berkas Cloudflare R2
           </p>
         </div>
       </div>
 
       {uploadSuccess && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg flex items-center gap-2">
+        <div className="p-3 bg-[#dcfce7] text-[#14532d] text-xs rounded flex items-center gap-2">
           <Check className="w-4 h-4" /> Bukti transfer berhasil diunggah ke Cloudflare R2 dan menunggu verifikasi Admin TU!
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {invoices.map((inv) => (
-          <div key={inv.id} className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div key={inv.id} className="p-5 bg-white rounded-lg flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{inv.id}</span>
-                <h4 className="font-semibold text-slate-900 text-base mt-0.5">{inv.componentName}</h4>
-                <p className="text-xs text-slate-500 mt-1">Siswa: {inv.studentName} &bull; Jatuh Tempo: {inv.dueDate}</p>
+                <span className="text-xs font-semibold text-[#5f6672]">{inv.id}</span>
+                <h4 className="font-semibold text-sm text-[#111827] mt-0.5">{inv.componentName}</h4>
+                <p className="text-xs text-[#5f6672] mt-1">Siswa: {inv.studentName} &bull; Jatuh Tempo: {inv.dueDate}</p>
               </div>
 
               <div>
                 {inv.status === "paid" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#dcfce7] text-[#14532d]">
                     <CheckCircle2 className="w-3.5 h-3.5" /> Lunas
                   </span>
                 )}
                 {inv.status === "pending" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#fffbeb] text-[#92400e]">
                     <Clock className="w-3.5 h-3.5" /> Menunggu Verifikasi
                   </span>
                 )}
                 {inv.status === "unpaid" && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#ffedea] text-[#831c1e]">
                     <AlertCircle className="w-3.5 h-3.5" /> Belum Dibayar
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="mt-5 pt-4 flex items-center justify-between">
               <div>
-                <span className="text-xs text-slate-500">Nominal Tagihan:</span>
-                <p className="text-lg font-bold text-slate-900">Rp {inv.amount.toLocaleString("id-ID")}</p>
+                <span className="text-xs text-[#5f6672]">Nominal Tagihan:</span>
+                <p className="text-lg font-bold text-[#111827] tabular-nums">Rp {inv.amount.toLocaleString("id-ID")}</p>
               </div>
 
               {inv.status === "unpaid" && (
                 <button
                   onClick={() => setSelectedInvoice(inv)}
-                  className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium px-3.5 py-2 rounded-lg transition"
+                  className="inline-flex items-center gap-1.5 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
                 >
-                  <UploadCloud className="w-4 h-4" /> Unggah Bukti Bayar
+                  <UploadCloud className="w-3.5 h-3.5" /> Unggah Bukti Bayar
                 </button>
               )}
             </div>
@@ -128,18 +128,18 @@ export function FinanceManager() {
       </div>
 
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full p-6 space-y-4">
-            <h4 className="font-bold text-lg text-slate-900">Unggah Bukti Pembayaran</h4>
-            <p className="text-sm text-slate-600">
+        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h4 className="font-bold text-base text-[#111827]">Unggah Bukti Pembayaran</h4>
+            <p className="text-xs text-[#5f6672]">
               Tagihan: <strong>{selectedInvoice.componentName}</strong> (Rp {selectedInvoice.amount.toLocaleString("id-ID")})
             </p>
 
             <form onSubmit={handleUploadProof} className="space-y-4">
-              <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-indigo-400 transition cursor-pointer">
-                <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                <p className="text-xs text-slate-600 font-medium">Klik untuk memilih gambar struk/bukti transfer</p>
-                <p className="text-[10px] text-slate-400 mt-1">PNG, JPG atau PDF maks 5MB</p>
+              <div className="p-6 bg-[#f9fafb] rounded text-center cursor-pointer">
+                <UploadCloud className="w-6 h-6 text-[#9ca3af] mx-auto mb-2" />
+                <p className="text-xs text-[#111827] font-medium">Klik untuk memilih gambar struk/bukti transfer</p>
+                <p className="text-[11px] text-[#5f6672] mt-0.5">PNG, JPG atau PDF maks 5MB</p>
                 <input type="file" className="hidden" id="proof-upload" />
               </div>
 
@@ -147,16 +147,16 @@ export function FinanceManager() {
                 <button
                   type="button"
                   onClick={() => setSelectedInvoice(null)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+                  className="px-3 py-1.5 text-xs font-medium text-[#4b5563] hover:bg-[#f3f4f6] rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={uploading}
-                  className="px-4 py-2 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-medium bg-[#b8336a] hover:bg-[#a12b5b] text-white rounded transition disabled:opacity-50"
                 >
-                  {uploading ? "Mengunggah ke R2..." : "Kirim Bukti Bayar"}
+                  {uploading ? "Mengunggah..." : "Kirim Bukti Bayar"}
                 </button>
               </div>
             </form>

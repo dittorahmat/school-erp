@@ -4,8 +4,8 @@ import { z } from "zod";
 import { Bindings } from "../index";
 import { hashPassword, verifyPassword, signJwt } from "./crypto";
 import { authMiddleware } from "./middleware";
-import { createDb, users } from "@school-erp/db";
-import { eq } from "drizzle-orm";
+import { createDb, users, eq } from "@school-erp/db";
+
 
 const authRouter = new Hono<{ Bindings: Bindings }>();
 

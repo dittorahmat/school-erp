@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Bindings } from "../index";
 import { authMiddleware, requireRoles } from "../auth/middleware";
-import { createDb, academicYears, classrooms, subjects, studentEnrollments } from "@school-erp/db";
-import { eq, desc } from "drizzle-orm";
+import { createDb, academicYears, classrooms, subjects, studentEnrollments, desc } from "@school-erp/db";
+
 
 const academicRouter = new Hono<{ Bindings: Bindings }>();
 
