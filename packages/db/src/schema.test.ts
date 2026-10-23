@@ -7,6 +7,8 @@ import {
   feeComponents,
   inventoryCategories,
   inventoryItems,
+  inventoryLocations,
+  inventoryAssetUnits,
 } from "./schema";
 
 describe("Database Schema Entities", () => {
@@ -18,5 +20,7 @@ describe("Database Schema Entities", () => {
     expect(feeComponents).toBeDefined();
     expect(inventoryCategories).toBeDefined();
     expect(inventoryItems).toBeDefined();
+    expect(inventoryLocations).toBeDefined();
+    expect(inventoryAssetUnits).toBeDefined();
   });
 });
