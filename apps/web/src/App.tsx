@@ -5,11 +5,12 @@ import { AcademicManager } from "./components/AcademicManager";
 import { AttendanceChecklist } from "./components/AttendanceChecklist";
 import { FinanceManager } from "./components/FinanceManager";
 import { GradebookManager } from "./components/GradebookManager";
-import { GraduationCap, BookOpen, CreditCard, ShieldCheck, LogOut, UserCheck, CalendarCheck, Award } from "lucide-react";
+import { ParentPortal } from "./components/ParentPortal";
+import { GraduationCap, BookOpen, CreditCard, ShieldCheck, LogOut, UserCheck, CalendarCheck, Award, Users } from "lucide-react";
 
 function MainDashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "academic" | "attendance" | "finance" | "gradebook">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent">("overview");
 
   return (
     <div className="min-h-screen flex flex-col justify-between">
@@ -37,10 +38,10 @@ function MainDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
-        <div className="flex gap-2 border-b border-slate-200 mb-6">
+        <div className="flex gap-2 border-b border-slate-200 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
               activeTab === "overview"
                 ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -50,7 +51,7 @@ function MainDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("academic")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
               activeTab === "academic"
                 ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -60,7 +61,7 @@ function MainDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("attendance")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
               activeTab === "attendance"
                 ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -70,7 +71,7 @@ function MainDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("finance")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
               activeTab === "finance"
                 ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700"
@@ -80,13 +81,23 @@ function MainDashboard() {
           </button>
           <button
             onClick={() => setActiveTab("gradebook")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
               activeTab === "gradebook"
                 ? "border-indigo-600 text-indigo-600"
                 : "border-transparent text-slate-500 hover:text-slate-700"
             }`}
           >
             Buku Nilai & Rapor
+          </button>
+          <button
+            onClick={() => setActiveTab("parent")}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
+              activeTab === "parent"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Portal Orang Tua
           </button>
         </div>
 
@@ -104,15 +115,15 @@ function MainDashboard() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               <div
                 onClick={() => setActiveTab("academic")}
                 className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
               >
-                <BookOpen className="w-7 h-7 text-indigo-600 mb-3" />
-                <h3 className="font-semibold text-base text-slate-800">Struktur Akademik</h3>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Kelola Rombel, penempatan siswa, dan jadwal pelajaran.
+                <BookOpen className="w-6 h-6 text-indigo-600 mb-2.5" />
+                <h3 className="font-semibold text-sm text-slate-800">Struktur Akademik</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Kelola Rombel & penempatan siswa.
                 </p>
               </div>
 
@@ -120,10 +131,10 @@ function MainDashboard() {
                 onClick={() => setActiveTab("attendance")}
                 className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
               >
-                <CalendarCheck className="w-7 h-7 text-indigo-600 mb-3" />
-                <h3 className="font-semibold text-base text-slate-800">Presensi Harian</h3>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Pencatatan presensi siswa cepat (Hadir, Sakit, Izin, Alpa).
+                <CalendarCheck className="w-6 h-6 text-indigo-600 mb-2.5" />
+                <h3 className="font-semibold text-sm text-slate-800">Presensi Harian</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Pencatatan kehadiran cepat guru.
                 </p>
               </div>
 
@@ -131,10 +142,10 @@ function MainDashboard() {
                 onClick={() => setActiveTab("finance")}
                 className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
               >
-                <CreditCard className="w-7 h-7 text-indigo-600 mb-3" />
-                <h3 className="font-semibold text-base text-slate-800">Keuangan & SPP</h3>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Tagihan batch bulanan & verifikasi bukti transfer Cloudflare R2.
+                <CreditCard className="w-6 h-6 text-indigo-600 mb-2.5" />
+                <h3 className="font-semibold text-sm text-slate-800">Keuangan & SPP</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Tagihan bulanan & bukti bayar R2.
                 </p>
               </div>
 
@@ -142,10 +153,21 @@ function MainDashboard() {
                 onClick={() => setActiveTab("gradebook")}
                 className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
               >
-                <Award className="w-7 h-7 text-indigo-600 mb-3" />
-                <h3 className="font-semibold text-base text-slate-800">Buku Nilai & Rapor</h3>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Input nilai guru, bobot persentase & rapor semester.
+                <Award className="w-6 h-6 text-indigo-600 mb-2.5" />
+                <h3 className="font-semibold text-sm text-slate-800">Buku Nilai & Rapor</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Input nilai & rapor Kurikulum Merdeka.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setActiveTab("parent")}
+                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
+              >
+                <Users className="w-6 h-6 text-indigo-600 mb-2.5" />
+                <h3 className="font-semibold text-sm text-slate-800">Portal Orang Tua</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Pemantauan multi-anak terpadu.
                 </p>
               </div>
             </div>
@@ -156,8 +178,10 @@ function MainDashboard() {
           <AttendanceChecklist />
         ) : activeTab === "finance" ? (
           <FinanceManager />
-        ) : (
+        ) : activeTab === "gradebook" ? (
           <GradebookManager />
+        ) : (
+          <ParentPortal />
         )}
       </main>
 
