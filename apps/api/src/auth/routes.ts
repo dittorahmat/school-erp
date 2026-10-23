@@ -28,14 +28,22 @@ authRouter.post("/login", async (c) => {
   const user = foundUsers[0];
 
   if (!user) {
-    // Demo/Development fallback user when database is empty
-    if (c.env.ENVIRONMENT === "development" && username === "admin" && password === "admin123") {
+    // Demo seed users fallback saat database D1 kosong
+    const demoAccounts: Record<string, { pass: string; role: any; name: string }> = {
+      admin: { pass: "admin123", role: "admin", name: "Hj. Siti Aminah, S.Pd. (Admin TU)" },
+      guru_budi: { pass: "guru123", role: "teacher", name: "Budi Purnomo, S.Pd. (Guru)" },
+      siswa_ahmad: { pass: "siswa123", role: "student", name: "Ahmad Dahlan (Siswa)" },
+      wali_subagyo: { pass: "wali123", role: "guardian", name: "Ir. Bambang Subagyo (Wali)" },
+    };
+
+    const demoUser = demoAccounts[username];
+    if (demoUser && password === demoUser.pass) {
       const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24 hours
       const payload = {
-        sub: "usr_mock_admin",
-        username: "admin",
-        fullName: "Administrator Sekolah",
-        role: "admin",
+        sub: `usr_demo_${username}`,
+        username,
+        fullName: demoUser.name,
+        role: demoUser.role,
         exp,
       };
       const token = await signJwt(payload, c.env.JWT_SECRET);

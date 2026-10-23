@@ -75,8 +75,14 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
-            <strong>Akun Demo:</strong> Username <code>admin</code> / Password <code>admin123</code>
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 space-y-1">
+            <p className="font-semibold text-slate-800">Akun Demo Tersedia:</p>
+            <div className="grid grid-cols-2 gap-1 text-[11px]">
+              <div>&bull; Admin: <code>admin</code> / <code>admin123</code></div>
+              <div>&bull; Guru: <code>guru_budi</code> / <code>guru123</code></div>
+              <div>&bull; Siswa: <code>siswa_ahmad</code> / <code>siswa123</code></div>
+              <div>&bull; Wali: <code>wali_subagyo</code> / <code>wali123</code></div>
+            </div>
           </div>
 
           <button

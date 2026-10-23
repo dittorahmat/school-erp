@@ -5,13 +5,13 @@ compatibility_flags = ["nodejs_compat"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "school-erp-d1"
-database_id = "local-d1-id"
+database_name = "school-erp-db"
+database_id = "93c65c0c-289e-405c-afda-737fa4a6219a"
 
 [[r2_buckets]]
 binding = "STORAGE"
 bucket_name = "school-erp-storage"
 
 [vars]
-ENVIRONMENT = "development"
-JWT_SECRET = "dev-secret-key-school-erp-must-be-long-enough-32-chars"
+ENVIRONMENT = "production"
+JWT_SECRET = "production-jwt-secret-school-erp-cloudflare-edge-secret"
