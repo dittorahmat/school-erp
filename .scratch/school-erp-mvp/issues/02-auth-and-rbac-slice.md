@@ -4,10 +4,17 @@
 
 **Blocked by:** 01: Monorepo Foundation
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Schema `users` dan `refresh_tokens` di Drizzle ORM
-- [ ] Endpoint `/api/auth/login` memvalidasi kredensial (password hashing Web Crypto) dan mengeluarkan JWT cookie
-- [ ] Endpoint `/api/auth/me` dan `/api/auth/logout` berfungsi
-- [ ] Middleware proteksi rute Hono berdasarkan role pengguna
-- [ ] Halaman login dan dashboard redirect di `apps/web`
+- [x] Schema `users` dan `refresh_tokens` di Drizzle ORM
+- [x] Endpoint `/api/auth/login` memvalidasi kredensial (password hashing Web Crypto) dan mengeluarkan JWT cookie
+- [x] Endpoint `/api/auth/me` dan `/api/auth/logout` berfungsi
+- [x] Middleware proteksi rute Hono berdasarkan role pengguna
+- [x] Halaman login dan dashboard redirect di `apps/web`
+
+## Answer
+Sistem Autentikasi dan Otorisasi RBAC telah selesai diimplementasikan secara end-to-end:
+- Hashing password menggunakan Web Crypto API (PBKDF2 SHA-256) dan Stateless JWT signing HS256 yang kompatibel penuh dengan edge runtime Cloudflare Workers.
+- Middleware `authMiddleware` dan `requireRoles` untuk pengamanan route Hono.
+- Router autentikasi `/api/auth/login`, `/api/auth/logout`, dan `/api/auth/me` terintegrasi dengan cookie `HttpOnly`.
+- Auth Context dan antarmuka Halaman Login + Dashboard responsif di `apps/web` berhasil di-build dan siap digunakan.

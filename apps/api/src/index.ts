@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { authRouter } from "./auth/routes";
 
 export type Bindings = {
   DB: D1Database;
@@ -17,6 +18,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.route("/api/auth", authRouter);
 
 app.get("/api/health", (c) => {
   return c.json({
