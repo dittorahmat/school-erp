@@ -4,10 +4,16 @@
 
 **Blocked by:** 03: Academic Structure Slice
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Schema `attendance_sessions` dan `attendance_records` di Drizzle
-- [ ] Endpoint input dan update presensi oleh Guru
-- [ ] Endpoint rekap kehadiran siswa per semester
-- [ ] UI form checklist presensi cepat untuk Guru di `apps/web`
-- [ ] UI riwayat kehadiran di portal Siswa/Wali
+- [x] Schema `attendance_sessions` dan `attendance_records` di Drizzle
+- [x] Endpoint input dan update presensi oleh Guru
+- [x] Endpoint rekap kehadiran siswa per semester
+- [x] UI form checklist presensi cepat untuk Guru di `apps/web`
+- [x] UI riwayat kehadiran di portal Siswa/Wali
+
+## Answer
+Modul Presensi Siswa telah diimplementasikan end-to-end:
+- Schema `attendance_sessions` dan `attendance_records` dengan status Hadir, Sakit, Izin, dan Alpa.
+- Endpoint `/api/attendance/session` dan `/api/attendance/summary` dengan verifikasi otorisasi.
+- Komponen interaktif `AttendanceChecklist` di `apps/web` memungkinkan guru menandai kehadiran siswa secara visual dan cepat.
