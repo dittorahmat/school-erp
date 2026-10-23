@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { authRouter } from "./auth/routes";
 import { academicRouter } from "./academic/routes";
 import { attendanceRouter } from "./attendance/routes";
+import { financeRouter } from "./finance/routes";
 
 export type Bindings = {
   DB: D1Database;
@@ -24,6 +25,7 @@ app.use(
 app.route("/api/auth", authRouter);
 app.route("/api/academic", academicRouter);
 app.route("/api/attendance", attendanceRouter);
+app.route("/api/finance", financeRouter);
 
 app.get("/api/health", (c) => {
   return c.json({

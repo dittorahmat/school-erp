@@ -3,11 +3,12 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LoginPage } from "./components/LoginPage";
 import { AcademicManager } from "./components/AcademicManager";
 import { AttendanceChecklist } from "./components/AttendanceChecklist";
+import { FinanceManager } from "./components/FinanceManager";
 import { GraduationCap, BookOpen, CreditCard, ShieldCheck, LogOut, UserCheck, CalendarCheck } from "lucide-react";
 
 function MainDashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "academic" | "attendance">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "academic" | "attendance" | "finance">("overview");
 
   return (
     <div className="min-h-screen flex flex-col justify-between">
@@ -66,6 +67,16 @@ function MainDashboard() {
           >
             Presensi Siswa
           </button>
+          <button
+            onClick={() => setActiveTab("finance")}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition ${
+              activeTab === "finance"
+                ? "border-indigo-600 text-indigo-600"
+                : "border-transparent text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Keuangan & SPP
+          </button>
         </div>
 
         {activeTab === "overview" ? (
@@ -105,7 +116,10 @@ function MainDashboard() {
                 </p>
               </div>
 
-              <div className="p-6 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition">
+              <div
+                onClick={() => setActiveTab("finance")}
+                className="p-6 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
+              >
                 <CreditCard className="w-8 h-8 text-indigo-600 mb-3" />
                 <h3 className="font-semibold text-lg text-slate-800">Keuangan & SPP</h3>
                 <p className="text-sm text-slate-600 mt-2">
@@ -116,8 +130,10 @@ function MainDashboard() {
           </div>
         ) : activeTab === "academic" ? (
           <AcademicManager />
-        ) : (
+        ) : activeTab === "attendance" ? (
           <AttendanceChecklist />
+        ) : (
+          <FinanceManager />
         )}
       </main>
 
