@@ -35,6 +35,12 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
   ```
 - Dilarang mengimpor dari subpath tidak terdaftar seperti `@school-erp/db/schema`.
 
+### Architecture Mandate: Deep Modules & Pure Domain Seams
+
+- **Deep Modules over Shallow Routes**: Hindari menaruh mutasi status multi-tabel, validasi state-machine, dan kalkulasi saldo mutasi langsung di dalam handler rute HTTP (`apps/api/src/`).
+- **The Interface is the Test Surface**: Logika domain (misal: siklus peminjaman aset `AssetCirculation`, buku besar stok persediaan `StockLedger`) wajib dibungkus ke dalam modul domain murni dengan interface ringkas dan ekspresif.
+- **Pure-JS In-Memory Testability**: Setiap modul domain wajib memiliki unit test Vitest terisolasi (`*.test.ts`) yang dapat diuji tanpa perlu mock seluruh server HTTP Hono. Handler HTTP hanya bertindak sebagai adapter tipis yang menerjemahkan payload JSON ke pemanggilan method modul.
+
 ### Verification & Automated Guardrails
 
 - Setiap perubahan kode WAJIB divalidasi dengan menjalankan `pnpm run check` (menjalankan typecheck semua workspace, unit test Vitest, dan linter design-taste-frontend dengan alokasi heap aman).

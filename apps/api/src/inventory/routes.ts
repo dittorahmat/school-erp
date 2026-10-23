@@ -21,6 +21,8 @@ import {
 } from "@school-erp/db";
 import { authMiddleware, requireRoles } from "../auth/middleware";
 import type { Bindings } from "../index";
+import { AssetCirculation } from "./circulation";
+import { StockLedger } from "./ledger";
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -422,22 +424,15 @@ inventoryRouter.post("/loans", async (c) => {
 
   const data = parsed.data;
   const db = createDb(c.env.DB);
-  const id = `loan_${Date.now()}`;
+  const circulation = new AssetCirculation(db);
 
   try {
-    const loan = {
-      id,
+    const loan = await circulation.requestLoan({
       unitId: data.unitId,
       borrowerId: user.id,
-      loanDate: new Date(),
       expectedReturnDate: new Date(data.expectedReturnDate),
       purpose: data.purpose,
-      outCondition: "good" as const,
-      status: "pending" as const,
-      createdAt: new Date(),
-    };
-
-    await db.insert(inventoryLoans).values(loan);
+    });
     return c.json({ message: "Pengajuan pinjaman berhasil dibuat", loan }, 201);
   } catch (err: unknown) {
     return c.json({ error: "Gagal membuat permohonan pinjam", message: String(err) }, 500);
@@ -454,30 +449,19 @@ inventoryRouter.post("/loans/:id/approval", requireRoles("admin"), async (c) => 
   }
 
   const db = createDb(c.env.DB);
-  const isApprove = parsed.data.action === "approve";
+  const circulation = new AssetCirculation(db);
 
   try {
-    const loanRecord = await db.select().from(inventoryLoans).where(eq(inventoryLoans.id, loanId)).limit(1);
-    if (!loanRecord.length) return c.json({ error: "Peminjaman tidak ditemukan" }, 404);
-
-    await db
-      .update(inventoryLoans)
-      .set({
-        status: isApprove ? "borrowed" : "rejected",
-        approverId: user?.id,
-      })
-      .where(eq(inventoryLoans.id, loanId));
-
-    if (isApprove) {
-      await db
-        .update(inventoryAssetUnits)
-        .set({ status: "loaned" })
-        .where(eq(inventoryAssetUnits.id, loanRecord[0].unitId));
-    }
-
-    return c.json({ message: isApprove ? "Peminjaman disetujui" : "Peminjaman ditolak" });
+    const result = await circulation.processApproval(
+      loanId,
+      user?.id ?? "system",
+      parsed.data.action
+    );
+    return c.json({ message: result.status === "borrowed" ? "Peminjaman disetujui" : "Peminjaman ditolak" });
   } catch (err: unknown) {
-    return c.json({ error: "Gagal memproses persetujuan", message: String(err) }, 500);
+    const message = String(err);
+    const status = message.includes("tidak ditemukan") ? 404 : 500;
+    return c.json({ error: "Gagal memproses persetujuan", message }, status);
   }
 });
 
@@ -489,34 +473,20 @@ inventoryRouter.post("/loans/:id/return", requireRoles("admin"), async (c) => {
     return c.json({ error: "Invalid return payload", details: parsed.error }, 400);
   }
 
-  const data = parsed.data;
   const db = createDb(c.env.DB);
+  const circulation = new AssetCirculation(db);
 
   try {
-    const loanRecord = await db.select().from(inventoryLoans).where(eq(inventoryLoans.id, loanId)).limit(1);
-    if (!loanRecord.length) return c.json({ error: "Peminjaman tidak ditemukan" }, 404);
-
-    await db
-      .update(inventoryLoans)
-      .set({
-        status: "returned",
-        actualReturnDate: new Date(),
-        returnCondition: data.returnCondition,
-        inspectionNotes: data.inspectionNotes ?? null,
-      })
-      .where(eq(inventoryLoans.id, loanId));
-
-    await db
-      .update(inventoryAssetUnits)
-      .set({
-        status: "available",
-        condition: data.returnCondition,
-      })
-      .where(eq(inventoryAssetUnits.id, loanRecord[0].unitId));
-
+    await circulation.processReturn({
+      loanId,
+      returnCondition: parsed.data.returnCondition,
+      inspectionNotes: parsed.data.inspectionNotes,
+    });
     return c.json({ message: "Aset berhasil dikembalikan dan diinspeksi" });
   } catch (err: unknown) {
-    return c.json({ error: "Gagal memproses pengembalian", message: String(err) }, 500);
+    const message = String(err);
+    const status = message.includes("tidak ditemukan") ? 404 : 500;
+    return c.json({ error: "Gagal memproses pengembalian", message }, status);
   }
 });
 
@@ -565,46 +535,21 @@ inventoryRouter.post("/stock-movements", requireRoles("admin"), async (c) => {
 
   const data = parsed.data;
   const db = createDb(c.env.DB);
+  const ledger = new StockLedger(db);
 
   try {
-    const lastMv = await db
-      .select()
-      .from(inventoryStockMovements)
-      .where(eq(inventoryStockMovements.itemId, data.itemId))
-      .orderBy(desc(inventoryStockMovements.createdAt))
-      .limit(1);
-
-    const currentBalance = lastMv.length > 0 ? lastMv[0].balanceAfter : 0;
-    let newBalance = currentBalance;
-
-    if (data.type === "in") {
-      newBalance = currentBalance + data.quantity;
-    } else if (data.type === "out") {
-      if (currentBalance < data.quantity) {
-        return c.json({ error: "Stok tidak mencukupi untuk pengeluaran barang" }, 400);
-      }
-      newBalance = currentBalance - data.quantity;
-    } else {
-      // adjustment / opname
-      newBalance = data.quantity;
-    }
-
-    const id = `sm_${Date.now()}`;
-    const movement = {
-      id,
+    const movement = await ledger.recordMovement({
       itemId: data.itemId,
       type: data.type,
       quantity: data.quantity,
-      balanceAfter: newBalance,
+      notes: data.notes,
       referenceUser: user?.id,
-      notes: data.notes ?? null,
-      createdAt: new Date(),
-    };
-
-    await db.insert(inventoryStockMovements).values(movement);
+    });
     return c.json({ message: "Mutasi persediaan berhasil dicatat", movement }, 201);
   } catch (err: unknown) {
-    return c.json({ error: "Gagal mencatat mutasi stok", message: String(err) }, 500);
+    const message = String(err);
+    const status = message.includes("tidak mencukupi") ? 400 : 500;
+    return c.json({ error: "Gagal mencatat mutasi stok", message }, status);
   }
 });
 
