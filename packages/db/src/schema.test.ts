@@ -9,10 +9,13 @@ import {
   inventoryItems,
   inventoryLocations,
   inventoryAssetUnits,
+  inventoryLoans,
+  inventoryStockMovements,
+  inventoryRequisitions,
 } from "./schema";
 
 describe("Database Schema Entities", () => {
-  it("should have tables defined properly", () => {
+  it("should have all tables defined properly", () => {
     expect(users).toBeDefined();
     expect(academicYears).toBeDefined();
     expect(classrooms).toBeDefined();
@@ -22,5 +25,8 @@ describe("Database Schema Entities", () => {
     expect(inventoryItems).toBeDefined();
     expect(inventoryLocations).toBeDefined();
     expect(inventoryAssetUnits).toBeDefined();
+    expect(inventoryLoans).toBeDefined();
+    expect(inventoryStockMovements).toBeDefined();
+    expect(inventoryRequisitions).toBeDefined();
   });
 });
