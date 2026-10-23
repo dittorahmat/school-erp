@@ -14,6 +14,11 @@ Five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-fo
 
 Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`.
 
+### Engineering Mandate: YAGNI & Conciseness
+
+- **Implement YAGNI**: Jangan membangun abstraksi, lapisan pembungkus, atau fitur spekulatif untuk masa depan yang belum diminta.
+- **Prefer One-Liner Solutions**: Utamakan solusi langsung, ringkas, dan ekspresif. Hindari boilerplate berlebih bila konstruksi satu baris atau bawaan bahasa sudah mencukupi tanpa mengorbankan keterbacaan.
+
 ### Architecture & Deployment Mandate (Cloudflare Edge Monolith)
 
 - **Single Fullstack Worker**: Seluruh aplikasi disajikan dari satu Edge Worker tunggal di `school-erp.tech1solusi.workers.dev`.
