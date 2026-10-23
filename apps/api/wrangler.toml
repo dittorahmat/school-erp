@@ -1,0 +1,17 @@
+name = "school-erp-api"
+main = "src/index.ts"
+compatibility_date = "2025-02-14"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "school-erp-d1"
+database_id = "local-d1-id"
+
+[[r2_buckets]]
+binding = "STORAGE"
+bucket_name = "school-erp-storage"
+
+[vars]
+ENVIRONMENT = "development"
+JWT_SECRET = "dev-secret-key-school-erp-must-be-long-enough-32-chars"

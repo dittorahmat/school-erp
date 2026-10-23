@@ -1,0 +1,14 @@
+description = "A relentless interview to sharpen a plan or design."
+
+prompt = """
+Execute the skill 'grill-me' following these instructions:
+
+---
+name: grill-me
+description: A relentless interview to sharpen a plan or design.
+disable-model-invocation: true
+---
+
+Call the Skill tool with "grilling".
+
+"""
