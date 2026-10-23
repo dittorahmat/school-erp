@@ -1,7 +1,11 @@
-name = "school-erp-api"
+name = "school-erp"
 main = "src/index.ts"
 compatibility_date = "2025-02-14"
 compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "../web/dist"
+binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
