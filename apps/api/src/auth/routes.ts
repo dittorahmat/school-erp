@@ -6,7 +6,6 @@ import { hashPassword, verifyPassword, signJwt } from "./crypto";
 import { authMiddleware } from "./middleware";
 import { createDb, users, eq } from "@school-erp/db";
 
-
 const authRouter = new Hono<{ Bindings: Bindings }>();
 
 const loginInputSchema = z.object({
@@ -24,21 +23,30 @@ authRouter.post("/login", async (c) => {
   const { username, password } = parsed.data;
   const db = createDb(c.env.DB);
 
-  const foundUsers = await db.select().from(users).where(eq(users.username, username)).limit(1);
-  const user = foundUsers[0];
+  let user = null;
+  try {
+    const foundUsers = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    user = foundUsers[0];
+  } catch {
+    // Fallback gracefully
+  }
 
   if (!user) {
-    // Demo seed users fallback saat database D1 kosong
+    // Rich demo seed accounts
     const demoAccounts: Record<string, { pass: string; role: any; name: string }> = {
-      admin: { pass: "admin123", role: "admin", name: "Hj. Siti Aminah, S.Pd. (Admin TU)" },
-      guru_budi: { pass: "guru123", role: "teacher", name: "Budi Purnomo, S.Pd. (Guru)" },
-      siswa_ahmad: { pass: "siswa123", role: "student", name: "Ahmad Dahlan (Siswa)" },
-      wali_subagyo: { pass: "wali123", role: "guardian", name: "Ir. Bambang Subagyo (Wali)" },
+      admin: { pass: "admin123", role: "admin", name: "Hj. Siti Aminah, S.Pd., M.M. (Admin TU)" },
+      guru_budi: { pass: "guru123", role: "teacher", name: "Budi Purnomo, S.Pd. (Guru Wali Kelas)" },
+      guru_siti: { pass: "guru123", role: "teacher", name: "Siti Rahmawati, M.Pd. (Guru Bahasa)" },
+      siswa_ahmad: { pass: "siswa123", role: "student", name: "Ahmad Dahlan (Siswa X-MIPA-1)" },
+      siswa_dewi: { pass: "siswa123", role: "student", name: "Dewi Sartika (Siswa VII-B)" },
+      siswa_budi: { pass: "siswa123", role: "student", name: "Budi Santoso (Siswa X-MIPA-1)" },
+      wali_subagyo: { pass: "wali123", role: "guardian", name: "Ir. Bambang Subagyo (Wali Ahmad & Dewi)" },
+      wali_hartono: { pass: "wali123", role: "guardian", name: "Drs. H. Hartono (Wali Budi Santoso)" },
     };
 
     const demoUser = demoAccounts[username];
     if (demoUser && password === demoUser.pass) {
-      const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24; // 24 hours
+      const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24;
       const payload = {
         sub: `usr_demo_${username}`,
         username,

@@ -22,9 +22,14 @@ export function LoginPage() {
     }
   };
 
+  const handleQuickSelect = (u: string, p: string) => {
+    setUsername(u);
+    setPassword(p);
+  };
+
   return (
     <div className="min-h-dvh flex items-center justify-center p-4 bg-[#f9fafb]" data-ui>
-      <div className="max-w-[380px] w-full bg-white rounded-lg p-8 space-y-6 shadow-xs">
+      <div className="max-w-[420px] w-full bg-white rounded-lg p-8 space-y-6 shadow-xs">
         <div>
           <div className="w-10 h-10 rounded-md bg-[#fdf2f7] text-[#b8336a] flex items-center justify-center mb-3">
             <GraduationCap className="w-6 h-6" />
@@ -75,13 +80,52 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="p-3 bg-[#f9fafb] rounded text-[11px] text-[#4b5563] space-y-1">
-            <p className="font-semibold text-[#111827]">Akun Demo:</p>
-            <div className="grid grid-cols-2 gap-1 text-slate-600">
-              <div>admin / admin123</div>
-              <div>guru_budi / guru123</div>
-              <div>siswa_ahmad / siswa123</div>
-              <div>wali_subagyo / wali123</div>
+          {/* Quick Demo Selector */}
+          <div className="p-3 bg-[#f9fafb] rounded text-[11px] text-[#4b5563] space-y-1.5">
+            <p className="font-semibold text-[#111827]">Pilih Akun Demo (Klik untuk isi cepat):</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("admin", "admin123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Admin TU (admin)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("guru_budi", "guru123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Guru Wali (guru_budi)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("guru_siti", "guru123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Guru Mapel (guru_siti)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("siswa_ahmad", "siswa123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Siswa (siswa_ahmad)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("wali_subagyo", "wali123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Wali Multi (wali_subagyo)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("wali_hartono", "wali123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Wali Tunggal (wali_hartono)
+              </button>
             </div>
           </div>
 

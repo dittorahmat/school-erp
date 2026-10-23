@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Bindings } from "../index";
 import { authMiddleware, requireRoles } from "../auth/middleware";
-import { createDb, invoices, feeComponents } from "@school-erp/db";
+import { createDb, invoices, feeComponents, demoSeedInvoices } from "@school-erp/db";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -10,32 +10,7 @@ financeRouter.use("*", authMiddleware());
 
 // GET /api/finance/invoices
 financeRouter.get("/invoices", async (c) => {
-  const user = c.get("user");
-  // Demo mock list tagihan SPP
-  return c.json({
-    data: [
-      {
-        id: "inv_2026_10",
-        studentName: "Ahmad Dahlan",
-        componentName: "SPP Bulanan Oktober 2026",
-        amount: 350000,
-        month: "2026-10",
-        status: "unpaid",
-        dueDate: "2026-10-15",
-        paymentProofUrl: null,
-      },
-      {
-        id: "inv_2026_09",
-        studentName: "Ahmad Dahlan",
-        componentName: "SPP Bulanan September 2026",
-        amount: 350000,
-        month: "2026-09",
-        status: "paid",
-        dueDate: "2026-09-15",
-        paymentProofUrl: "proofs/inv_2026_09.jpg",
-      },
-    ],
-  });
+  return c.json({ data: demoSeedInvoices });
 });
 
 // POST /api/finance/batch-generate (Admin TU)
@@ -53,7 +28,7 @@ financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
 
   return c.json({
     message: `Berhasil menerbitkan tagihan bulan ${parsed.data.month} untuk semua siswa aktif`,
-    generatedCount: 32,
+    generatedCount: 192,
   });
 });
 
@@ -78,7 +53,7 @@ financeRouter.post("/upload-proof", async (c) => {
       });
     }
   } catch {
-    // Graceful fallback jika R2 belum terhubung di runtime lokal
+    // Graceful fallback
   }
 
   return c.json({

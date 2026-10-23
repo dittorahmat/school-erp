@@ -1,10 +1,7 @@
-import { users, academicYears, classrooms, subjects, feeComponents } from "../schema";
-
 export const demoSeedUsers = [
   {
     id: "usr_admin_1",
     username: "admin",
-    // Password raw: admin123
     fullName: "Hj. Siti Aminah, S.Pd., M.M.",
     role: "admin" as const,
     email: "admin@sekolah.sch.id",
@@ -13,28 +10,135 @@ export const demoSeedUsers = [
   {
     id: "usr_teacher_1",
     username: "guru_budi",
-    // Password raw: guru123
     fullName: "Budi Purnomo, S.Pd.",
     role: "teacher" as const,
     email: "budi.purnomo@sekolah.sch.id",
     phone: "081234567891",
   },
   {
+    id: "usr_teacher_2",
+    username: "guru_siti",
+    fullName: "Siti Rahmawati, M.Pd.",
+    role: "teacher" as const,
+    email: "siti.rahmawati@sekolah.sch.id",
+    phone: "081234567895",
+  },
+  {
     id: "usr_student_1",
     username: "siswa_ahmad",
-    // Password raw: siswa123
     fullName: "Ahmad Dahlan",
     role: "student" as const,
     email: "ahmad.dahlan@student.sekolah.sch.id",
     phone: "081234567892",
   },
   {
+    id: "usr_student_2",
+    username: "siswa_dewi",
+    fullName: "Dewi Sartika",
+    role: "student" as const,
+    email: "dewi.sartika@student.sekolah.sch.id",
+    phone: "081234567896",
+  },
+  {
+    id: "usr_student_3",
+    username: "siswa_budi",
+    fullName: "Budi Santoso",
+    role: "student" as const,
+    email: "budi.santoso@student.sekolah.sch.id",
+    phone: "081234567897",
+  },
+  {
     id: "usr_guardian_1",
     username: "wali_subagyo",
-    // Password raw: wali123
     fullName: "Ir. Bambang Subagyo",
     role: "guardian" as const,
     email: "bambang.subagyo@gmail.com",
     phone: "081234567893",
+  },
+  {
+    id: "usr_guardian_2",
+    username: "wali_hartono",
+    fullName: "Drs. H. Hartono",
+    role: "guardian" as const,
+    email: "hartono.family@gmail.com",
+    phone: "081234567898",
+  },
+];
+
+export const demoSeedClassrooms = [
+  { id: "cls_10_mipa_1", name: "X-MIPA-1", gradeLevel: 10, studentCount: 32, homeroomTeacher: "Budi Purnomo, S.Pd." },
+  { id: "cls_10_mipa_2", name: "X-MIPA-2", gradeLevel: 10, studentCount: 30, homeroomTeacher: "Siti Rahmawati, M.Pd." },
+  { id: "cls_10_ips_1", name: "X-IPS-1", gradeLevel: 10, studentCount: 32, homeroomTeacher: "Drs. Joko Susilo" },
+  { id: "cls_11_mipa_1", name: "XI-MIPA-1", gradeLevel: 11, studentCount: 34, homeroomTeacher: "Sri Wahyuni, S.Si." },
+  { id: "cls_11_ips_1", name: "XI-IPS-1", gradeLevel: 11, studentCount: 31, homeroomTeacher: "Agus Pratama, S.Pd." },
+  { id: "cls_12_mipa_1", name: "XII-MIPA-1", gradeLevel: 12, studentCount: 35, homeroomTeacher: "Hendra Kusuma, M.Kom." },
+];
+
+export const demoSeedInvoices = [
+  {
+    id: "INV-2026-10-001",
+    studentName: "Ahmad Dahlan",
+    classroom: "X-MIPA-1",
+    componentName: "SPP Bulanan Oktober 2026",
+    amount: 350000,
+    month: "2026-10",
+    status: "unpaid",
+    dueDate: "15 Oktober 2026",
+    paymentProofUrl: null,
+  },
+  {
+    id: "INV-2026-10-002",
+    studentName: "Dewi Sartika",
+    classroom: "VII-B",
+    componentName: "SPP Bulanan Oktober 2026",
+    amount: 300000,
+    month: "2026-10",
+    status: "paid",
+    dueDate: "15 Oktober 2026",
+    paymentProofUrl: "proofs/INV-2026-10-002.jpg",
+  },
+  {
+    id: "INV-2026-10-003",
+    studentName: "Budi Santoso",
+    classroom: "X-MIPA-1",
+    componentName: "SPP Bulanan Oktober 2026",
+    amount: 350000,
+    month: "2026-10",
+    status: "pending",
+    dueDate: "15 Oktober 2026",
+    paymentProofUrl: "proofs/INV-2026-10-003-transfer.jpg",
+  },
+  {
+    id: "INV-2026-10-004",
+    studentName: "Citra Lestari",
+    classroom: "X-MIPA-1",
+    componentName: "SPP Bulanan Oktober 2026",
+    amount: 350000,
+    month: "2026-10",
+    status: "paid",
+    dueDate: "15 Oktober 2026",
+    paymentProofUrl: "proofs/INV-2026-10-004.jpg",
+  },
+  {
+    id: "INV-2026-09-001",
+    studentName: "Ahmad Dahlan",
+    classroom: "X-MIPA-1",
+    componentName: "SPP Bulanan September 2026",
+    amount: 350000,
+    month: "2026-09",
+    status: "paid",
+    dueDate: "15 September 2026",
+    paymentProofUrl: "proofs/INV-2026-09-001.jpg",
+  },
+  {
+    id: "INV-2026-09-002",
+    studentName: "Budi Santoso",
+    classroom: "X-MIPA-1",
+    componentName: "SPP Bulanan September 2026",
+    amount: 350000,
+    month: "2026-09",
+    status: "paid",
+    dueDate: "15 September 2026",
+    paymentProofUrl: "proofs/INV-2026-09-002.jpg",
   },
 ];

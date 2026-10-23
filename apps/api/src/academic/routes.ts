@@ -2,12 +2,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Bindings } from "../index";
 import { authMiddleware, requireRoles } from "../auth/middleware";
-import { createDb, academicYears, classrooms, subjects, studentEnrollments, desc } from "@school-erp/db";
-
+import { createDb, academicYears, classrooms, subjects, studentEnrollments, desc, demoSeedClassrooms } from "@school-erp/db";
 
 const academicRouter = new Hono<{ Bindings: Bindings }>();
 
-// Semua route akademik memerlukan autentikasi
 academicRouter.use("*", authMiddleware());
 
 // GET /api/academic/years
@@ -15,21 +13,22 @@ academicRouter.get("/years", async (c) => {
   const db = createDb(c.env.DB);
   try {
     const years = await db.select().from(academicYears).orderBy(desc(academicYears.createdAt));
-    return c.json({ data: years });
+    if (years.length > 0) return c.json({ data: years });
   } catch {
-    // Fallback Mock jika DB belum ter-migrate
-    return c.json({
-      data: [
-        {
-          id: "ay_2025_2026",
-          name: "2025/2026",
-          isActive: true,
-          semester: "odd",
-          createdAt: new Date(),
-        },
-      ],
-    });
+    // fallback
   }
+
+  return c.json({
+    data: [
+      {
+        id: "ay_2025_2026",
+        name: "2025/2026",
+        isActive: true,
+        semester: "odd",
+        createdAt: new Date(),
+      },
+    ],
+  });
 });
 
 // POST /api/academic/years (Hanya Admin)
@@ -57,7 +56,7 @@ academicRouter.post("/years", requireRoles("admin"), async (c) => {
       createdAt: new Date(),
     });
   } catch {
-    // Return simulated created record for mock/in-memory dev
+    // fallback
   }
 
   return c.json({
@@ -71,15 +70,12 @@ academicRouter.get("/classrooms", async (c) => {
   const db = createDb(c.env.DB);
   try {
     const list = await db.select().from(classrooms);
-    return c.json({ data: list });
+    if (list.length > 0) return c.json({ data: list });
   } catch {
-    return c.json({
-      data: [
-        { id: "cls_10_mipa_1", name: "X-MIPA-1", gradeLevel: 10, academicYearId: "ay_2025_2026" },
-        { id: "cls_11_mipa_1", name: "XI-MIPA-1", gradeLevel: 11, academicYearId: "ay_2025_2026" },
-      ],
-    });
+    // fallback
   }
+
+  return c.json({ data: demoSeedClassrooms });
 });
 
 export { academicRouter };
