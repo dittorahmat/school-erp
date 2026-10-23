@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-ground: #f9fafb;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-accent: #b8336a;
+  --color-accent-soft: #fdf2f7;
+  --color-accent-ink: #6b1d3e;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

@@ -23,75 +23,75 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-100">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <div className="bg-indigo-600 p-8 text-center text-white">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-500/50 mb-3">
-            <GraduationCap className="w-9 h-9" />
+    <div className="min-h-dvh flex items-center justify-center p-4 bg-[#f9fafb]" data-ui>
+      <div className="max-w-[380px] w-full bg-white rounded-lg p-8 space-y-6 shadow-xs">
+        <div>
+          <div className="w-10 h-10 rounded-md bg-[#fdf2f7] text-[#b8336a] flex items-center justify-center mb-3">
+            <GraduationCap className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold">Portal Masuk</h2>
-          <p className="text-indigo-100 text-sm mt-1">Sistem Informasi Manajemen Sekolah</p>
+          <h2 className="text-xl font-bold text-[#111827] tracking-tight">Masuk ke School ERP</h2>
+          <p className="text-xs text-[#5f6672] mt-1">Platform administrasi sekolah berbasis Cloudflare Edge</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg flex items-center gap-2">
+            <div className="p-2.5 bg-[#ffedea] text-[#831c1e] text-xs rounded flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-              Nama Pengguna (Username)
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[#374151]">
+              Nama Pengguna
             </label>
             <div className="relative">
-              <User className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
+              <User className="w-4 h-4 absolute left-3 top-2.5 text-[#9ca3af]" />
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Masukkan username"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition"
+                placeholder="Username"
+                className="w-full pl-9 pr-3 py-2 bg-[#f9fafb] rounded-md text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] transition"
                 required
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-              Kata Sandi (Password)
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-[#374151]">
+              Kata Sandi
             </label>
             <div className="relative">
-              <Lock className="w-5 h-5 absolute left-3 top-3 text-slate-400" />
+              <Lock className="w-4 h-4 absolute left-3 top-2.5 text-[#9ca3af]" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan password"
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition"
+                placeholder="Password"
+                className="w-full pl-9 pr-3 py-2 bg-[#f9fafb] rounded-md text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] transition"
                 required
               />
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 space-y-1">
-            <p className="font-semibold text-slate-800">Akun Demo Tersedia:</p>
-            <div className="grid grid-cols-2 gap-1 text-[11px]">
-              <div>&bull; Admin: <code>admin</code> / <code>admin123</code></div>
-              <div>&bull; Guru: <code>guru_budi</code> / <code>guru123</code></div>
-              <div>&bull; Siswa: <code>siswa_ahmad</code> / <code>siswa123</code></div>
-              <div>&bull; Wali: <code>wali_subagyo</code> / <code>wali123</code></div>
+          <div className="p-3 bg-[#f9fafb] rounded text-[11px] text-[#4b5563] space-y-1">
+            <p className="font-semibold text-[#111827]">Akun Demo:</p>
+            <div className="grid grid-cols-2 gap-1 text-slate-600">
+              <div>admin / admin123</div>
+              <div>guru_budi / guru123</div>
+              <div>siswa_ahmad / siswa123</div>
+              <div>wali_subagyo / wali123</div>
             </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-sm transition disabled:opacity-50"
+            className="w-full h-9 flex items-center justify-center gap-2 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium rounded-md transition disabled:opacity-50"
           >
-            {submitting ? "Memproses..." : "Masuk ke Sistem"}
-            <ArrowRight className="w-4 h-4" />
+            {submitting ? "Memproses..." : "Masuk"}
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
       </div>

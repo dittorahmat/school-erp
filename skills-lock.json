@@ -31,6 +31,12 @@
       "skillPath": "skills/engineering/codebase-design/SKILL.md",
       "computedHash": "fb1d8ab98ad151551eeade003e3ae55a46578a380fd9fc3ed4dbf9c2fbce0a9f"
     },
+    "design-taste-frontend": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill/SKILL.md",
+      "computedHash": "65049e1890f5fedf8f8e1144848f07bcda788e51c22bac78afbd073aeb486725"
+    },
     "diagnosing-bugs": {
       "source": "mattpocock/skills",
       "sourceType": "github",

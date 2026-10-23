@@ -6,188 +6,218 @@ import { AttendanceChecklist } from "./components/AttendanceChecklist";
 import { FinanceManager } from "./components/FinanceManager";
 import { GradebookManager } from "./components/GradebookManager";
 import { ParentPortal } from "./components/ParentPortal";
-import { GraduationCap, BookOpen, CreditCard, ShieldCheck, LogOut, UserCheck, CalendarCheck, Award, Users } from "lucide-react";
+import {
+  GraduationCap,
+  BookOpen,
+  CreditCard,
+  LogOut,
+  CalendarCheck,
+  Award,
+  Users,
+  LayoutDashboard,
+  Search,
+} from "lucide-react";
 
 function MainDashboard() {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<"overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent"
+  >("overview");
+
+  const navItems = [
+    { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
+    { id: "academic", label: "Struktur Akademik", icon: BookOpen },
+    { id: "attendance", label: "Presensi Siswa", icon: CalendarCheck },
+    { id: "finance", label: "Keuangan & SPP", icon: CreditCard },
+    { id: "gradebook", label: "Buku Nilai & Rapor", icon: Award },
+    { id: "parent", label: "Portal Orang Tua", icon: Users },
+  ] as const;
 
   return (
-    <div className="min-h-screen flex flex-col justify-between">
-      <header className="border-b bg-white shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab("overview")}>
-            <GraduationCap className="w-8 h-8 text-indigo-600" />
-            <span className="font-bold text-xl tracking-tight text-slate-800">
-              School ERP Cloudflare
+    <div className="min-h-dvh bg-[#f9fafb] flex" data-ui>
+      {/* 230px Ruled Sidebar */}
+      <aside className="w-[230px] shrink-0 bg-white flex flex-col justify-between shadow-xs">
+        <div>
+          {/* Brand Wordmark */}
+          <div className="h-16 px-5 flex items-center gap-2.5">
+            <GraduationCap className="w-5 h-5 text-[#b8336a]" />
+            <span className="font-semibold text-sm tracking-tight text-[#111827]">
+              School ERP
+            </span>
+          </div>
+
+          {/* Navigation Items (34px pitch, DM Sans) */}
+          <div className="p-3 space-y-1">
+            <div className="px-3 py-2 text-[11px] font-medium uppercase tracking-wider text-[#9ca3af]">
+              Menu Utama
+            </div>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition ${
+                    isActive
+                      ? "bg-[#fdf2f7] text-[#6b1d3e] font-semibold"
+                      : "text-[#4b5563] hover:bg-[#f9fafb] hover:text-[#111827]"
+                  }`}
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isActive ? "text-[#b8336a]" : "text-[#9ca3af]"
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* User Status in Sidebar Footer */}
+        <div className="p-4 bg-[#fbf7f8]">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[#111827] truncate">
+                {user?.fullName}
+              </p>
+              <p className="text-[11px] text-[#6b7280] uppercase tracking-wider">
+                {user?.role}
+              </p>
+            </div>
+            <button
+              onClick={() => logout()}
+              title="Keluar"
+              className="p-1.5 text-[#9ca3af] hover:text-[#c4242a] hover:bg-[#ffedea] rounded transition"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 64px Top Bar */}
+        <header className="h-16 px-8 bg-white flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-3">
+            <h1 className="text-sm font-semibold text-[#111827]">
+              {navItems.find((n) => n.id === activeTab)?.label}
+            </h1>
+            <span className="text-xs text-[#9ca3af]">&bull;</span>
+            <span className="text-xs text-[#6b7280]">
+              Tahun Ajaran 2025/2026 (Semester Ganjil)
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
-              <UserCheck className="w-3.5 h-3.5" /> {user?.fullName} ({user?.role.toUpperCase()})
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-[#9ca3af]" />
+              <input
+                type="text"
+                placeholder="Cari siswa, kelas, NISN..."
+                className="pl-8 pr-3 py-1.5 text-xs bg-[#f9fafb] rounded-md text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] w-56"
+              />
+            </div>
+            <span className="text-[11px] font-medium text-[#247b50] bg-[#dcfce7] px-2.5 py-1 rounded">
+              Cloudflare Edge
             </span>
-            <button
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium px-2 py-1 rounded-md hover:bg-rose-50 transition"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Keluar
-            </button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
-        <div className="flex gap-2 border-b border-slate-200 mb-6 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab("overview")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "overview"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Ringkasan
-          </button>
-          <button
-            onClick={() => setActiveTab("academic")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "academic"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Struktur Akademik
-          </button>
-          <button
-            onClick={() => setActiveTab("attendance")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "attendance"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Presensi Siswa
-          </button>
-          <button
-            onClick={() => setActiveTab("finance")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "finance"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Keuangan & SPP
-          </button>
-          <button
-            onClick={() => setActiveTab("gradebook")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "gradebook"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Buku Nilai & Rapor
-          </button>
-          <button
-            onClick={() => setActiveTab("parent")}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition shrink-0 ${
-              activeTab === "parent"
-                ? "border-indigo-600 text-indigo-600"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Portal Orang Tua
-          </button>
-        </div>
-
-        {activeTab === "overview" ? (
-          <div>
-            <div className="mb-8 p-6 bg-white rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Selamat datang, {user?.fullName}!</h2>
-                <p className="text-sm text-slate-600 mt-1">
-                  Anda masuk dengan hak akses peran <strong>{user?.role}</strong> di lingkungan Cloudflare Edge.
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <ShieldCheck className="w-3.5 h-3.5" /> Edge Authenticated
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              <div
-                onClick={() => setActiveTab("academic")}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
-              >
-                <BookOpen className="w-6 h-6 text-indigo-600 mb-2.5" />
-                <h3 className="font-semibold text-sm text-slate-800">Struktur Akademik</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Kelola Rombel & penempatan siswa.
-                </p>
+        {/* Workspace Canvas (24px padding & gap) */}
+        <main className="p-8 flex-1 max-w-7xl w-full mx-auto">
+          {activeTab === "overview" ? (
+            <div className="space-y-6">
+              {/* Lead Metric Strip */}
+              <div className="bg-white rounded-lg p-6 grid grid-cols-4 gap-6 shadow-xs">
+                <div>
+                  <span className="text-xs text-[#5f6672]">Total Siswa Aktif</span>
+                  <p className="text-2xl font-bold text-[#111827] mt-1 tabular-nums">
+                    480
+                  </p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">15 Rombongan Belajar</p>
+                </div>
+                <div>
+                  <span className="text-xs text-[#5f6672]">Presensi Hari Ini</span>
+                  <p className="text-2xl font-bold text-[#247b50] mt-1 tabular-nums">
+                    96.4%
+                  </p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">463 dari 480 hadir</p>
+                </div>
+                <div>
+                  <span className="text-xs text-[#5f6672]">Kolektibilitas SPP</span>
+                  <p className="text-2xl font-bold text-[#111827] mt-1 tabular-nums">
+                    84.2%
+                  </p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">Periode Oktober 2026</p>
+                </div>
+                <div>
+                  <span className="text-xs text-[#5f6672]">Verifikasi Tertunda</span>
+                  <p className="text-2xl font-bold text-[#b8336a] mt-1 tabular-nums">
+                    8
+                  </p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">Bukti transfer di R2</p>
+                </div>
               </div>
 
-              <div
-                onClick={() => setActiveTab("attendance")}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
-              >
-                <CalendarCheck className="w-6 h-6 text-indigo-600 mb-2.5" />
-                <h3 className="font-semibold text-sm text-slate-800">Presensi Harian</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Pencatatan kehadiran cepat guru.
-                </p>
-              </div>
+              {/* Sub-cards */}
+              <div className="grid grid-cols-3 gap-6">
+                <div
+                  onClick={() => setActiveTab("academic")}
+                  className="p-6 bg-white rounded-lg hover:bg-[#fbf7f8] transition cursor-pointer"
+                >
+                  <BookOpen className="w-5 h-5 text-[#b8336a] mb-2.5" />
+                  <h3 className="font-semibold text-sm text-[#111827]">
+                    Struktur Akademik
+                  </h3>
+                  <p className="text-xs text-[#5f6672] mt-1 leading-relaxed">
+                    Konfigurasi tahun ajaran, kurikulum mata pelajaran, dan penempatan riwayat kelas siswa.
+                  </p>
+                </div>
 
-              <div
-                onClick={() => setActiveTab("finance")}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
-              >
-                <CreditCard className="w-6 h-6 text-indigo-600 mb-2.5" />
-                <h3 className="font-semibold text-sm text-slate-800">Keuangan & SPP</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Tagihan bulanan & bukti bayar R2.
-                </p>
-              </div>
+                <div
+                  onClick={() => setActiveTab("attendance")}
+                  className="p-6 bg-white rounded-lg hover:bg-[#fbf7f8] transition cursor-pointer"
+                >
+                  <CalendarCheck className="w-5 h-5 text-[#b8336a] mb-2.5" />
+                  <h3 className="font-semibold text-sm text-[#111827]">
+                    Presensi & Kehadiran
+                  </h3>
+                  <p className="text-xs text-[#5f6672] mt-1 leading-relaxed">
+                    Pencatatan cepat presensi harian per jam pelajaran oleh wali kelas dan guru pengampu.
+                  </p>
+                </div>
 
-              <div
-                onClick={() => setActiveTab("gradebook")}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
-              >
-                <Award className="w-6 h-6 text-indigo-600 mb-2.5" />
-                <h3 className="font-semibold text-sm text-slate-800">Buku Nilai & Rapor</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Input nilai & rapor Kurikulum Merdeka.
-                </p>
-              </div>
-
-              <div
-                onClick={() => setActiveTab("parent")}
-                className="p-5 bg-white rounded-xl border border-slate-200 shadow-xs hover:border-indigo-400 transition cursor-pointer"
-              >
-                <Users className="w-6 h-6 text-indigo-600 mb-2.5" />
-                <h3 className="font-semibold text-sm text-slate-800">Portal Orang Tua</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  Pemantauan multi-anak terpadu.
-                </p>
+                <div
+                  onClick={() => setActiveTab("finance")}
+                  className="p-6 bg-white rounded-lg hover:bg-[#fbf7f8] transition cursor-pointer"
+                >
+                  <CreditCard className="w-5 h-5 text-[#b8336a] mb-2.5" />
+                  <h3 className="font-semibold text-sm text-[#111827]">
+                    Keuangan & Bukti R2
+                  </h3>
+                  <p className="text-xs text-[#5f6672] mt-1 leading-relaxed">
+                    Penerbitan batch tagihan SPP bulanan serta verifikasi berkas transfer via Cloudflare R2.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ) : activeTab === "academic" ? (
-          <AcademicManager />
-        ) : activeTab === "attendance" ? (
-          <AttendanceChecklist />
-        ) : activeTab === "finance" ? (
-          <FinanceManager />
-        ) : activeTab === "gradebook" ? (
-          <GradebookManager />
-        ) : (
-          <ParentPortal />
-        )}
-      </main>
-
-      <footer className="border-t bg-white py-6 text-center text-xs text-slate-500">
-        &copy; {new Date().getFullYear()} School ERP. Powered by Cloudflare Workers, D1 & R2.
-      </footer>
+          ) : activeTab === "academic" ? (
+            <AcademicManager />
+          ) : activeTab === "attendance" ? (
+            <AttendanceChecklist />
+          ) : activeTab === "finance" ? (
+            <FinanceManager />
+          ) : activeTab === "gradebook" ? (
+            <GradebookManager />
+          ) : (
+            <ParentPortal />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
@@ -197,8 +227,8 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="min-h-dvh flex items-center justify-center bg-[#f9fafb]">
+        <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-[#b8336a]"></div>
       </div>
     );
   }
