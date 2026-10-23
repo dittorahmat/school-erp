@@ -34,3 +34,17 @@ Dokumen ini mendefinisikan istilah resmi (canonical vocabulary) yang digunakan d
 - **Komponen Penilaian (Assessment Component)**: Unsur evaluasi belajar (misalnya: Tugas/PR, Kuis, Penilaian Harian/Formatif, UTS, UAS/Sumatif).
 - **Buku Nilai (Gradebook)**: Rekapitulasi perolehan nilai siswa pada setiap komponen penilaian dalam satu mata pelajaran dan semester.
 - **Rapor (Report Card)**: Dokumen ringkasan akhir capaian belajar akademik, presensi, dan catatan ekstrakurikuler/perilaku siswa dalam satu semester.
+
+### Inventaris & Sarana Prasarana (Inventory & Assets)
+- **Katalog Barang (Item Master)**: Master data barang yang mendefinisikan identitas umum, kategori, dan klasifikasi sifat barang (Aset Tetap atau Barang Habis Pakai).
+- **Aset Tetap / Sarana (Fixed Asset)**: Barang fisik bernilai modal atau pakai jangka panjang yang memiliki identifikasi unit unik (kode inventaris/nomor seri), kondisi fisik, dan lokasi penempatan/penanggung jawab.
+- **Barang Habis Pakai / ATK (Consumable)**: Barang operasional yang dicatat berbasis kuantitas stok agregat, satuan ukur, dan ambang batas minimum persediaan (reorder point).
+- **Nomor Registrasi Aset (Asset Tag / Code)**: Kode identifikasi unik yang diterbitkan sistem (misal pola QR/barcode) untuk mengidentifikasi fisik unit aset individual, selain nomor seri pabrik (serial number).
+- **Lokasi / Ruangan (Location / Facility)**: Ruang fisik sekolah (misalnya Lab Komputer, Ruang Guru, Gudang Sarpras, Kelas X-1) tempat aset ditempatkan atau disimpan.
+- **Kondisi Aset (Asset Condition)**: Status kelayakan fisik aset: Baik, Rusak Ringan, Rusak Berat, atau Hilang.
+- **Permintaan Peminjaman Aset (Asset Loan Request)**: Pengajuan sementara oleh Guru/Staf untuk meminjam satu atau lebih unit aset dengan batas estimasi waktu pengembalian dan tujuan penggunaan.
+- **Status Peminjaman Aset (Loan Status)**: Keadaan siklus peminjaman: Menunggu Persetujuan, Disetujui/Sedang Dipinjam, Selesai (Dikembalikan), Ditolak, atau Terlambat (Overdue).
+- **Permintaan Barang Habis Pakai (Consumable Requisition)**: Pengajuan alokasi barang persediaan untuk kebutuhan operasional/kelas yang disetujui oleh Admin TU/Sarpras dan langsung mengurangi saldo stok.
+- **Mutasi Stok (Stock Movement)**: Riwayat perubahan saldo barang habis pakai (Masuk/Restock, Keluar/Pemakaian, atau Koreksi/Opname).
+- **Penyesuaian Stok / Opname (Stock Adjustment)**: Tindakan rekonsiliasi selisih antara hitungan fisik nyata dan saldo sistem yang disertai keterangan alasan (rusak, hilang, kedaluwarsa, atau koreksi hitung).
+- **Inspeksi Pengembalian (Return Inspection)**: Proses serah terima kembali aset pinjaman yang memverifikasi kesesuaian kondisi fisik aset saat dikembalikan dibanding saat keluar.
