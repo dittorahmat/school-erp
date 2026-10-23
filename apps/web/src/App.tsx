@@ -6,6 +6,7 @@ import { AttendanceChecklist } from "./components/AttendanceChecklist";
 import { FinanceManager } from "./components/FinanceManager";
 import { GradebookManager } from "./components/GradebookManager";
 import { ParentPortal } from "./components/ParentPortal";
+import { InventoryManager } from "./components/InventoryManager";
 import {
   GraduationCap,
   BookOpen,
@@ -16,12 +17,13 @@ import {
   Users,
   LayoutDashboard,
   Search,
+  Package,
 } from "lucide-react";
 
 function MainDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent"
+    "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent" | "inventory"
   >("overview");
 
   const navItems = [
@@ -31,6 +33,7 @@ function MainDashboard() {
     { id: "finance", label: "Keuangan & SPP", icon: CreditCard },
     { id: "gradebook", label: "Buku Nilai & Rapor", icon: Award },
     { id: "parent", label: "Portal Orang Tua", icon: Users },
+    { id: "inventory", label: "Katalog Inventaris", icon: Package },
   ] as const;
 
   return (
@@ -192,15 +195,15 @@ function MainDashboard() {
                 </div>
 
                 <div
-                  onClick={() => setActiveTab("finance")}
+                  onClick={() => setActiveTab("inventory")}
                   className="p-6 bg-white rounded-lg hover:bg-[#fbf7f8] transition cursor-pointer"
                 >
-                  <CreditCard className="w-5 h-5 text-[#b8336a] mb-2.5" />
+                  <Package className="w-5 h-5 text-[#b8336a] mb-2.5" />
                   <h3 className="font-semibold text-sm text-[#111827]">
-                    Keuangan & Bukti R2
+                    Katalog Sarana & Inventaris
                   </h3>
                   <p className="text-xs text-[#5f6672] mt-1 leading-relaxed">
-                    Penerbitan batch tagihan SPP bulanan serta verifikasi berkas transfer via Cloudflare R2.
+                    Pencatatan master barang inventaris sekolah, pemilahan aset tetap dan barang habis pakai.
                   </p>
                 </div>
               </div>
@@ -213,6 +216,8 @@ function MainDashboard() {
             <FinanceManager />
           ) : activeTab === "gradebook" ? (
             <GradebookManager />
+          ) : activeTab === "inventory" ? (
+            <InventoryManager />
           ) : (
             <ParentPortal />
           )}
