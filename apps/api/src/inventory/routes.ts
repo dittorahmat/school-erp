@@ -12,6 +12,12 @@ import {
   users,
   desc,
   eq,
+  demoSeedCategories,
+  demoSeedLocations,
+  demoSeedInventoryItems,
+  demoSeedAssetUnits,
+  demoSeedLoans,
+  demoSeedStockMovements,
 } from "@school-erp/db";
 import { authMiddleware, requireRoles } from "../auth/middleware";
 import type { Bindings } from "../index";
@@ -94,10 +100,11 @@ inventoryRouter.get("/categories", async (c) => {
       .select()
       .from(inventoryCategories)
       .orderBy(inventoryCategories.name);
-    return c.json({ categories });
+    if (categories.length > 0) return c.json({ categories });
   } catch {
-    return c.json({ categories: [] });
+    // fallback to demo seed
   }
+  return c.json({ categories: demoSeedCategories });
 });
 
 inventoryRouter.post("/categories", requireRoles("admin"), async (c) => {
@@ -133,10 +140,11 @@ inventoryRouter.get("/locations", async (c) => {
       .select()
       .from(inventoryLocations)
       .orderBy(inventoryLocations.name);
-    return c.json({ locations });
+    if (locations.length > 0) return c.json({ locations });
   } catch {
-    return c.json({ locations: [] });
+    // fallback to demo seed
   }
+  return c.json({ locations: demoSeedLocations });
 });
 
 inventoryRouter.post("/locations", requireRoles("admin"), async (c) => {
@@ -192,16 +200,24 @@ inventoryRouter.get("/items", async (c) => {
       )
       .orderBy(desc(inventoryItems.createdAt));
 
-    const filtered = items.filter((item: { type: string; categoryId: string }) => {
-      if (typeFilter && item.type !== typeFilter) return false;
-      if (categoryId && item.categoryId !== categoryId) return false;
-      return true;
-    });
-
-    return c.json({ items: filtered });
+    if (items.length > 0) {
+      const filtered = items.filter((item: { type: string; categoryId: string }) => {
+        if (typeFilter && item.type !== typeFilter) return false;
+        if (categoryId && item.categoryId !== categoryId) return false;
+        return true;
+      });
+      return c.json({ items: filtered });
+    }
   } catch {
-    return c.json({ items: [] });
+    // fallback to demo seed
   }
+
+  const filteredDemo = demoSeedInventoryItems.filter((item) => {
+    if (typeFilter && item.type !== typeFilter) return false;
+    if (categoryId && item.categoryId !== categoryId) return false;
+    return true;
+  });
+  return c.json({ items: filteredDemo });
 });
 
 inventoryRouter.post("/items", requireRoles("admin"), async (c) => {
@@ -266,17 +282,26 @@ inventoryRouter.get("/asset-units", async (c) => {
       )
       .orderBy(desc(inventoryAssetUnits.createdAt));
 
-    const filtered = units.filter((u: { itemId: string; locationId: string; status: string }) => {
-      if (itemId && u.itemId !== itemId) return false;
-      if (locationId && u.locationId !== locationId) return false;
-      if (status && u.status !== status) return false;
-      return true;
-    });
-
-    return c.json({ units: filtered });
+    if (units.length > 0) {
+      const filtered = units.filter((u: { itemId: string; locationId: string; status: string }) => {
+        if (itemId && u.itemId !== itemId) return false;
+        if (locationId && u.locationId !== locationId) return false;
+        if (status && u.status !== status) return false;
+        return true;
+      });
+      return c.json({ units: filtered });
+    }
   } catch {
-    return c.json({ units: [] });
+    // fallback to demo seed
   }
+
+  const filteredDemo = demoSeedAssetUnits.filter((u) => {
+    if (itemId && u.itemId !== itemId) return false;
+    if (locationId && u.locationId !== locationId) return false;
+    if (status && u.status !== status) return false;
+    return true;
+  });
+  return c.json({ units: filteredDemo });
 });
 
 inventoryRouter.post("/asset-units", requireRoles("admin"), async (c) => {
@@ -369,18 +394,20 @@ inventoryRouter.get("/loans", async (c) => {
       .leftJoin(users, eq(inventoryLoans.borrowerId, users.id))
       .orderBy(desc(inventoryLoans.createdAt));
 
-    // If teacher, only return their loans unless admin
-    const filtered = loans.filter((l) => {
-      if (user?.role !== "admin_tu" && user?.role !== "admin" && l.borrowerId !== user?.id) {
-        return false;
-      }
-      return true;
-    });
-
-    return c.json({ loans: filtered });
+    if (loans.length > 0) {
+      const filtered = loans.filter((l) => {
+        if (user?.role !== "admin_tu" && user?.role !== "admin" && l.borrowerId !== user?.id) {
+          return false;
+        }
+        return true;
+      });
+      return c.json({ loans: filtered });
+    }
   } catch {
-    return c.json({ loans: [] });
+    // fallback to demo seed
   }
+
+  return c.json({ loans: demoSeedLoans });
 });
 
 inventoryRouter.post("/loans", async (c) => {
@@ -516,11 +543,16 @@ inventoryRouter.get("/stock-movements", async (c) => {
       .leftJoin(inventoryItems, eq(inventoryStockMovements.itemId, inventoryItems.id))
       .orderBy(desc(inventoryStockMovements.createdAt));
 
-    const filtered = itemId ? movements.filter((m) => m.itemId === itemId) : movements;
-    return c.json({ movements: filtered });
+    if (movements.length > 0) {
+      const filtered = itemId ? movements.filter((m) => m.itemId === itemId) : movements;
+      return c.json({ movements: filtered });
+    }
   } catch {
-    return c.json({ movements: [] });
+    // fallback to demo seed
   }
+
+  const filteredDemo = itemId ? demoSeedStockMovements.filter((m) => m.itemId === itemId) : demoSeedStockMovements;
+  return c.json({ movements: filteredDemo });
 });
 
 inventoryRouter.post("/stock-movements", requireRoles("admin"), async (c) => {
