@@ -39,6 +39,20 @@ export class AssetCirculation {
     if (!input.unitId || !input.borrowerId) {
       throw new Error("Unit aset dan peminjam wajib ditentukan");
     }
+
+    const unitRecords = await this.db
+      .select()
+      .from(inventoryAssetUnits)
+      .where(eq(inventoryAssetUnits.id, input.unitId))
+      .limit(1);
+
+    if (!unitRecords || unitRecords.length === 0) {
+      throw new Error("Unit aset tidak ditemukan");
+    }
+    if (unitRecords[0].status !== "available") {
+      throw new Error("Unit aset tidak tersedia untuk dipinjam");
+    }
+
     const id = `loan_${Date.now()}`;
     const loan = {
       id,
@@ -75,6 +89,9 @@ export class AssetCirculation {
     }
 
     const loan = loanRecords[0];
+    if (loan.status !== "pending") {
+      throw new Error("Peminjaman sudah diproses sebelumnya");
+    }
     const isApprove = decision === "approve";
     const nextStatus = isApprove ? ("borrowed" as const) : ("rejected" as const);
 
@@ -113,6 +130,9 @@ export class AssetCirculation {
     }
 
     const loan = loanRecords[0];
+    if (loan.status !== "borrowed" && loan.status !== "overdue") {
+      throw new Error("Peminjaman tidak dalam status dipinjam");
+    }
     await this.db
       .update(inventoryLoans)
       .set({

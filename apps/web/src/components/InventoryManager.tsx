@@ -359,6 +359,19 @@ export function InventoryManager() {
     }
   };
 
+  const handleApproveRequisition = async (requisitionId: string, action: "approve" | "reject") => {
+    try {
+      const res = await fetch(`/api/inventory/requisitions/${requisitionId}/approval`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) loadData();
+    } catch {
+      // noop
+    }
+  };
+
   const fixedAssetItems = items.filter((i) => i.type === "fixed_asset");
   const consumableItems = items.filter((i) => i.type === "consumable");
   const availableAssetUnits = assetUnits.filter((u) => u.status === "available");
@@ -793,6 +806,10 @@ export function InventoryManager() {
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fffbeb] text-[#92400e]">
                             Menunggu Persetujuan
                           </span>
+                        ) : loan.status === "overdue" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#ffedea] text-[#831c1e]">
+                            Terlambat
+                          </span>
                         ) : loan.status === "borrowed" ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#eff6ff] text-[#1e40af]">
                             Sedang Dipinjam
@@ -826,7 +843,7 @@ export function InventoryManager() {
                             </button>
                           </div>
                         )}
-                        {loan.status === "borrowed" && (
+                        {(loan.status === "borrowed" || loan.status === "overdue") && (
                           <button
                             onClick={() => setShowReturnModal(loan)}
                             className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-[#b8336a] text-white rounded font-medium shadow-xs hover:bg-[#a02b5b] transition"
@@ -901,6 +918,85 @@ export function InventoryManager() {
                         </td>
                         <td className="px-5 py-3.5 text-[#5f6672]">
                           {new Date(mv.createdAt).toLocaleString("id-ID")}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg overflow-hidden">
+            <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
+              <span className="text-xs font-semibold text-[#111827]">Permintaan Barang Habis Pakai</span>
+              <span className="text-[11px] text-[#5f6672]">
+                {requisitions.filter((req) => req.status === "pending").length} menunggu persetujuan
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-5 py-3">Barang</th>
+                    <th className="px-5 py-3">Pemohon</th>
+                    <th className="px-5 py-3 text-center">Jumlah</th>
+                    <th className="px-5 py-3">Alasan</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requisitions.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-8 text-center text-[#5f6672]">
+                        Belum ada permintaan barang habis pakai.
+                      </td>
+                    </tr>
+                  ) : (
+                    requisitions.map((req) => (
+                      <tr key={req.id} className="hover:bg-[#fbf7f8] transition">
+                        <td className="px-5 py-3.5 font-medium text-[#111827]">{req.itemName}</td>
+                        <td className="px-5 py-3.5 text-[#111827]">{req.requesterName || "Staf"}</td>
+                        <td className="px-5 py-3.5 text-center tabular-nums text-[#111827]">
+                          {req.quantity} {req.unit}
+                        </td>
+                        <td className="px-5 py-3.5 text-[#5f6672]">{req.reason}</td>
+                        <td className="px-5 py-3.5">
+                          {req.status === "pending" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fffbeb] text-[#92400e]">
+                              Menunggu
+                            </span>
+                          ) : req.status === "approved" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                              Disetujui
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fef2f2] text-[#991b1b]">
+                              Ditolak
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          {req.status === "pending" && (
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => handleApproveRequisition(req.id, "approve")}
+                                title="Setujui"
+                                className="p-1 bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0] rounded transition"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleApproveRequisition(req.id, "reject")}
+                                title="Tolak"
+                                className="p-1 bg-[#fee2e2] text-[#991b1b] hover:bg-[#fecaca] rounded transition"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ))

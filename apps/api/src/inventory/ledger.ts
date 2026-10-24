@@ -97,6 +97,9 @@ export class StockLedger {
     }
 
     const req = records[0];
+    if (req.status !== "pending") {
+      throw new Error("Permintaan ATK sudah diproses sebelumnya");
+    }
     const isApprove = input.decision === "approve";
     const nextStatus = isApprove ? ("approved" as const) : ("rejected" as const);
 
