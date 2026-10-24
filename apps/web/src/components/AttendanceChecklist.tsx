@@ -15,10 +15,10 @@ interface Classroom {
 }
 
 const statusLabels: Array<{ value: Status; label: string; active: string }> = [
-  { value: "present", label: "Hadir", active: "bg-[#247b50] text-white" },
-  { value: "sick", label: "Sakit", active: "bg-[#92400e] text-white" },
-  { value: "permit", label: "Izin", active: "bg-[#b8336a] text-white" },
-  { value: "absent", label: "Alpa", active: "bg-[#c4242a] text-white" },
+  { value: "present", label: "Hadir", active: "bg-success text-white" },
+  { value: "sick", label: "Sakit", active: "bg-warning-ink text-white" },
+  { value: "permit", label: "Izin", active: "bg-accent text-white" },
+  { value: "absent", label: "Alpa", active: "bg-danger text-white" },
 ];
 
 const defaultSchoolDate = () => {
@@ -136,10 +136,10 @@ export function AttendanceChecklist() {
     <div className="space-y-6" data-ui>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
-            <UserCheck className="w-4 h-4 text-[#b8336a]" /> Presensi Harian Siswa
+          <h3 className="text-base font-bold text-ink flex items-center gap-2">
+            <UserCheck className="w-4 h-4 text-accent" /> Presensi Harian Siswa
           </h3>
-          <p className="text-xs text-[#5f6672] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Kelas: <strong>{activeClassroom?.name ?? "..."}</strong> &bull; Tanggal:{" "}
             <strong>
               {new Date(`${date}T00:00:00`).toLocaleDateString("id-ID", { dateStyle: "long" })}
@@ -151,7 +151,7 @@ export function AttendanceChecklist() {
           <select
             value={classroomId}
             onChange={(event) => setClassroomId(event.target.value)}
-            className="px-3 py-1.5 bg-white rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+            className="px-3 py-1.5 bg-white rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
           >
             {classrooms.map((classroom) => (
               <option key={classroom.id} value={classroom.id}>
@@ -163,12 +163,12 @@ export function AttendanceChecklist() {
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
-            className="px-3 py-1.5 bg-white rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+            className="px-3 py-1.5 bg-white rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
           />
           <button
             onClick={handleSave}
             disabled={saving || students.length === 0}
-            className="inline-flex items-center gap-1.5 bg-[#247b50] hover:bg-[#1d6340] text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 bg-success hover:bg-success-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
           >
             <Save className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Simpan Presensi"}
           </button>
@@ -176,20 +176,20 @@ export function AttendanceChecklist() {
       </div>
 
       {saved && (
-        <div className="p-3 bg-[#dcfce7] text-[#14532d] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-success-soft text-success-ink text-xs rounded flex items-center gap-2">
           <Check className="w-4 h-4" /> Presensi berhasil disimpan ke D1.
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-[#ffedea] text-[#831c1e] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded flex items-center gap-2">
           <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
 
       <div className="bg-white rounded-lg overflow-hidden">
         <table className="w-full text-left text-xs">
-          <thead className="bg-[#f9fafb] text-[11px] font-semibold text-[#5f6672]">
+          <thead className="bg-ground text-[11px] font-semibold text-muted">
             <tr>
               <th className="px-5 py-3">Nama Siswa</th>
               <th className="px-5 py-3 text-center">Status Kehadiran</th>
@@ -198,20 +198,20 @@ export function AttendanceChecklist() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={2} className="px-5 py-8 text-center text-[#5f6672]">
+                <td colSpan={2} className="px-5 py-8 text-center text-muted">
                   Memuat data siswa...
                 </td>
               </tr>
             ) : students.length === 0 ? (
               <tr>
-                <td colSpan={2} className="px-5 py-8 text-center text-[#5f6672]">
+                <td colSpan={2} className="px-5 py-8 text-center text-muted">
                   Belum ada siswa pada rombel ini.
                 </td>
               </tr>
             ) : (
               students.map((student) => (
-                <tr key={student.id} className="hover:bg-[#f9fafb]">
-                  <td className="px-5 py-3.5 font-medium text-[#111827]">{student.name}</td>
+                <tr key={student.id} className="hover:bg-ground">
+                  <td className="px-5 py-3.5 font-medium text-ink">{student.name}</td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-center gap-2">
                       {statusLabels.map((status) => (
@@ -221,7 +221,7 @@ export function AttendanceChecklist() {
                           className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
                             student.status === status.value
                               ? status.active
-                              : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
+                              : "bg-subtle text-ink-muted hover:bg-border"
                           }`}
                         >
                           {status.label}

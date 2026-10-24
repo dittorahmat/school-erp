@@ -173,21 +173,21 @@ export function GradebookManager() {
     <div className="space-y-6" data-ui>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
-            <BookOpen className="w-4 h-4 text-[#b8336a]" /> Penilaian & Buku Nilai (Gradebook)
+          <h3 className="text-base font-bold text-ink flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-accent" /> Penilaian & Buku Nilai (Gradebook)
           </h3>
-          <p className="text-xs text-[#5f6672] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             {scorebook
               ? `Mata Pelajaran: ${scorebook.subject} · Guru: ${scorebook.teacher}`
               : "Memuat buku nilai..."}
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-[#f3f4f6] p-1 rounded-md">
+        <div className="flex items-center gap-1.5 bg-subtle p-1 rounded-md">
           <button
             onClick={() => setActiveSubTab("gradebook")}
             className={`px-3 py-1 text-xs font-semibold rounded transition ${
-              activeSubTab === "gradebook" ? "bg-white text-[#b8336a]" : "text-[#5f6672] hover:text-[#111827]"
+              activeSubTab === "gradebook" ? "bg-white text-accent" : "text-muted hover:text-ink"
             }`}
           >
             Buku Nilai Guru
@@ -195,7 +195,7 @@ export function GradebookManager() {
           <button
             onClick={() => setActiveSubTab("report")}
             className={`px-3 py-1 text-xs font-semibold rounded transition ${
-              activeSubTab === "report" ? "bg-white text-[#b8336a]" : "text-[#5f6672] hover:text-[#111827]"
+              activeSubTab === "report" ? "bg-white text-accent" : "text-muted hover:text-ink"
             }`}
           >
             Preview Rapor Siswa
@@ -204,12 +204,12 @@ export function GradebookManager() {
       </div>
 
       {message && (
-        <div className="p-3 bg-[#dcfce7] text-[#14532d] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-success-soft text-success-ink text-xs rounded flex items-center gap-2">
           <Check className="w-4 h-4" /> {message}
         </div>
       )}
       {error && (
-        <div className="p-3 bg-[#ffedea] text-[#831c1e] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded flex items-center gap-2">
           <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
@@ -220,7 +220,7 @@ export function GradebookManager() {
             <select
               value={subjectId}
               onChange={(event) => setSubjectId(event.target.value)}
-              className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+              className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
             >
               {subjects.map((subject) => (
                 <option key={subject.id} value={subject.id}>
@@ -231,7 +231,7 @@ export function GradebookManager() {
             <select
               value={classroomId}
               onChange={(event) => setClassroomId(event.target.value)}
-              className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+              className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
             >
               {classrooms.map((classroom) => (
                 <option key={classroom.id} value={classroom.id}>
@@ -242,21 +242,21 @@ export function GradebookManager() {
             <button
               onClick={handleSave}
               disabled={saving || !scorebook || scorebook.students.length === 0}
-              className="inline-flex items-center gap-1.5 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
             >
               {saving ? "Menyimpan..." : "Simpan Nilai"}
             </button>
-            <span className="text-[11px] text-[#5f6672]">
+            <span className="text-[11px] text-muted">
               Bobot: {scorebook?.components.map((component) => `${component.name} (${component.weight}%)`).join(" · ")}
             </span>
           </div>
 
           <div className="bg-white rounded-lg overflow-x-auto">
             {loading ? (
-              <div className="p-8 text-center text-xs text-[#5f6672]">Memuat nilai...</div>
+              <div className="p-8 text-center text-xs text-muted">Memuat nilai...</div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#f9fafb] text-[11px] font-semibold text-[#5f6672]">
+                <thead className="bg-ground text-[11px] font-semibold text-muted">
                   <tr>
                     <th className="px-5 py-3">Nama Siswa</th>
                     {scorebook?.components.map((component) => (
@@ -270,8 +270,8 @@ export function GradebookManager() {
                 </thead>
                 <tbody>
                   {scorebook?.students.map((student) => (
-                    <tr key={student.id} className="hover:bg-[#f9fafb]">
-                      <td className="px-5 py-3.5 font-medium text-[#111827]">{student.name}</td>
+                    <tr key={student.id} className="hover:bg-ground">
+                      <td className="px-5 py-3.5 font-medium text-ink">{student.name}</td>
                       {scorebook.components.map((component) => {
                         const key = `${student.id}:${component.id}`;
                         const value = edits[key] ?? student.scores[component.id] ?? "";
@@ -291,16 +291,16 @@ export function GradebookManager() {
                                       : Number(event.target.value),
                                 }))
                               }
-                              className="w-16 px-2 py-1 bg-[#f9fafb] rounded text-center text-xs text-[#111827] tabular-nums focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                              className="w-16 px-2 py-1 bg-ground rounded text-center text-xs text-ink tabular-nums focus:outline-none focus:ring-1 focus:ring-accent"
                             />
                           </td>
                         );
                       })}
-                      <td className="px-4 py-3.5 text-center font-bold text-[#b8336a] tabular-nums">
+                      <td className="px-4 py-3.5 text-center font-bold text-accent tabular-nums">
                         {student.finalScore || "-"}
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-bold bg-[#dcfce7] text-[#14532d]">
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-bold bg-success-soft text-success-ink">
                           {student.predicate}
                         </span>
                       </td>
@@ -314,44 +314,44 @@ export function GradebookManager() {
       ) : (
         <div className="p-6 bg-white rounded-lg space-y-6">
           {reportLoading || !report ? (
-            <div className="p-8 text-center text-xs text-[#5f6672]">Memuat rapor...</div>
+            <div className="p-8 text-center text-xs text-muted">Memuat rapor...</div>
           ) : (
             <>
               <div className="pb-4 flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold text-[#b8336a]">
+                  <span className="text-xs font-bold text-accent">
                     Kartu Laporan Hasil Belajar (Rapor)
                   </span>
-                  <h4 className="text-xl font-bold text-[#111827] mt-0.5">{report.student.name}</h4>
-                  <p className="text-xs text-[#5f6672]">
+                  <h4 className="text-xl font-bold text-ink mt-0.5">{report.student.name}</h4>
+                  <p className="text-xs text-muted">
                     NISN: {report.student.nisn} &bull; Kelas: {report.student.classroom} &bull;{" "}
                     {report.student.academicYear}
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-[#5f6672]">Rata-rata Semester:</span>
-                  <p className="text-2xl font-bold text-[#111827] tabular-nums">{report.gpa}</p>
+                  <span className="text-xs text-muted">Rata-rata Semester:</span>
+                  <p className="text-2xl font-bold text-ink tabular-nums">{report.gpa}</p>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <h5 className="font-semibold text-xs text-[#111827]">Capaian Kompetensi Akademik:</h5>
+                <h5 className="font-semibold text-xs text-ink">Capaian Kompetensi Akademik:</h5>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {report.subjects.map((subject) => (
-                    <div key={subject.name} className="p-4 bg-[#f9fafb] rounded text-xs">
+                    <div key={subject.name} className="p-4 bg-ground rounded text-xs">
                       <div className="flex justify-between items-center mb-1">
-                        <strong className="text-[#111827]">{subject.name}</strong>
-                        <span className="text-[11px] font-bold text-[#14532d] bg-[#dcfce7] px-2 py-0.5 rounded">
+                        <strong className="text-ink">{subject.name}</strong>
+                        <span className="text-[11px] font-bold text-success-ink bg-success-soft px-2 py-0.5 rounded">
                           Nilai: {subject.score} ({subject.predicate})
                         </span>
                       </div>
-                      <p className="text-xs text-[#5f6672]">{subject.notes}</p>
+                      <p className="text-xs text-muted">{subject.notes}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="p-4 bg-[#fdf2f7] rounded text-xs text-[#6b1d3e] flex items-center justify-between">
+              <div className="p-4 bg-accent-soft rounded text-xs text-accent-ink flex items-center justify-between">
                 <span>
                   Rekap Kehadiran: Hadir {report.attendanceSummary.present} hari &bull; Sakit{" "}
                   {report.attendanceSummary.sick} hari &bull; Izin {report.attendanceSummary.permit}{" "}

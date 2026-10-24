@@ -391,10 +391,10 @@ export function InventoryManager() {
       {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-[#111827] flex items-center gap-2">
-            <Package className="w-4 h-4 text-[#b8336a]" /> Sarana & Inventaris Terpadu
+          <h2 className="text-base font-bold text-ink flex items-center gap-2">
+            <Package className="w-4 h-4 text-accent" /> Sarana & Inventaris Terpadu
           </h2>
-          <p className="text-xs text-[#5f6672] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Manajemen siklus hidup aset tetap, lokasi penempatan, peminjaman barang, dan stok persediaan ATK.
           </p>
         </div>
@@ -403,7 +403,7 @@ export function InventoryManager() {
           {activeTab === "catalog" && (
             <button
               onClick={() => setShowAddItemModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b8336a] text-white text-xs font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
             >
               <Plus className="w-3.5 h-3.5" /> Tambah Barang
             </button>
@@ -416,7 +416,7 @@ export function InventoryManager() {
                 }
                 setShowAddUnitModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b8336a] text-white text-xs font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
             >
               <Plus className="w-3.5 h-3.5" /> Registrasi Unit Aset
             </button>
@@ -429,7 +429,7 @@ export function InventoryManager() {
                 }
                 setShowNewLoanModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b8336a] text-white text-xs font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
             >
               <Plus className="w-3.5 h-3.5" /> Ajukan Peminjaman
             </button>
@@ -442,7 +442,7 @@ export function InventoryManager() {
                 }
                 setShowNewStockModal(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b8336a] text-white text-xs font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
             >
               <Plus className="w-3.5 h-3.5" /> Catat Mutasi Persediaan
             </button>
@@ -456,8 +456,8 @@ export function InventoryManager() {
           onClick={() => setActiveTab("catalog")}
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
             activeTab === "catalog"
-              ? "bg-[#fdf2f7] text-[#6b1d3e]"
-              : "text-[#5f6672] hover:bg-[#f9fafb]"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
           }`}
         >
           <Layers className="w-3.5 h-3.5" /> Katalog Barang
@@ -466,8 +466,8 @@ export function InventoryManager() {
           onClick={() => setActiveTab("assets")}
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
             activeTab === "assets"
-              ? "bg-[#fdf2f7] text-[#6b1d3e]"
-              : "text-[#5f6672] hover:bg-[#f9fafb]"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
           }`}
         >
           <Tag className="w-3.5 h-3.5" /> Unit Fisik ({assetUnits.length})
@@ -476,8 +476,8 @@ export function InventoryManager() {
           onClick={() => setActiveTab("loans")}
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
             activeTab === "loans"
-              ? "bg-[#fdf2f7] text-[#6b1d3e]"
-              : "text-[#5f6672] hover:bg-[#f9fafb]"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
           }`}
         >
           <RotateCcw className="w-3.5 h-3.5" /> Sirkulasi Pinjam ({loans.filter((l) => l.status === "borrowed" || l.status === "pending").length})
@@ -486,8 +486,8 @@ export function InventoryManager() {
           onClick={() => setActiveTab("consumables")}
           className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
             activeTab === "consumables"
-              ? "bg-[#fdf2f7] text-[#6b1d3e]"
-              : "text-[#5f6672] hover:bg-[#f9fafb]"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
           }`}
         >
           <ClipboardList className="w-3.5 h-3.5" /> Persediaan ATK ({consumableItems.length})
@@ -498,63 +498,63 @@ export function InventoryManager() {
       <div className="grid grid-cols-4 gap-6">
         <div className="bg-white rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#5f6672]">Katalog Terdaftar</span>
-            <Layers className="w-4 h-4 text-[#b8336a]" />
+            <span className="text-xs text-muted">Katalog Terdaftar</span>
+            <Layers className="w-4 h-4 text-accent" />
           </div>
-          <p className="text-2xl font-bold text-[#111827] mt-2 tabular-nums">
+          <p className="text-2xl font-bold text-ink mt-2 tabular-nums">
             {items.length}
           </p>
-          <p className="text-[11px] text-[#5f6672] mt-1">{categories.length} Kategori terdaftar</p>
+          <p className="text-[11px] text-muted mt-1">{categories.length} Kategori terdaftar</p>
         </div>
 
         <div className="bg-white rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#5f6672]">Aset Tersedia</span>
-            <Tag className="w-4 h-4 text-[#247b50]" />
+            <span className="text-xs text-muted">Aset Tersedia</span>
+            <Tag className="w-4 h-4 text-success" />
           </div>
-          <p className="text-2xl font-bold text-[#247b50] mt-2 tabular-nums">
+          <p className="text-2xl font-bold text-success mt-2 tabular-nums">
             {assetUnits.filter((u) => u.status === "available").length}
           </p>
-          <p className="text-[11px] text-[#5f6672] mt-1">Siap dipinjam/digunakan</p>
+          <p className="text-[11px] text-muted mt-1">Siap dipinjam/digunakan</p>
         </div>
 
         <div className="bg-white rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#5f6672]">Sedang Dipinjam</span>
-            <Clock className="w-4 h-4 text-[#b8336a]" />
+            <span className="text-xs text-muted">Sedang Dipinjam</span>
+            <Clock className="w-4 h-4 text-accent" />
           </div>
-          <p className="text-2xl font-bold text-[#b8336a] mt-2 tabular-nums">
+          <p className="text-2xl font-bold text-accent mt-2 tabular-nums">
             {loans.filter((l) => l.status === "borrowed").length}
           </p>
-          <p className="text-[11px] text-[#5f6672] mt-1">Sirkulasi guru & staf</p>
+          <p className="text-[11px] text-muted mt-1">Sirkulasi guru & staf</p>
         </div>
 
         <div className="bg-white rounded-lg p-5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#5f6672]">Mutasi Persediaan</span>
-            <ClipboardList className="w-4 h-4 text-[#111827]" />
+            <span className="text-xs text-muted">Mutasi Persediaan</span>
+            <ClipboardList className="w-4 h-4 text-ink" />
           </div>
-          <p className="text-2xl font-bold text-[#111827] mt-2 tabular-nums">
+          <p className="text-2xl font-bold text-ink mt-2 tabular-nums">
             {stockMovements.length}
           </p>
-          <p className="text-[11px] text-[#5f6672] mt-1">Audit log stok & opname</p>
+          <p className="text-[11px] text-muted mt-1">Audit log stok & opname</p>
         </div>
       </div>
 
       {activeTab === "catalog" ? (
         /* Catalog Table View */
         <div className="bg-white rounded-lg overflow-hidden">
-          <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
+          <div className="p-4 flex items-center justify-between bg-raised">
             <div className="flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5 text-[#9ca3af]" />
-              <span className="text-xs font-semibold text-[#111827]">Filter Jenis:</span>
+              <Filter className="w-3.5 h-3.5 text-faint" />
+              <span className="text-xs font-semibold text-ink">Filter Jenis:</span>
               <div className="flex gap-1 ml-2">
                 <button
                   onClick={() => setActiveFilter("all")}
                   className={`px-2.5 py-1 text-xs rounded font-medium transition ${
                     activeFilter === "all"
-                      ? "bg-[#fdf2f7] text-[#6b1d3e] font-semibold"
-                      : "text-[#5f6672] hover:bg-[#f9fafb]"
+                      ? "bg-accent-soft text-accent-ink font-semibold"
+                      : "text-muted hover:bg-ground"
                   }`}
                 >
                   Semua
@@ -563,8 +563,8 @@ export function InventoryManager() {
                   onClick={() => setActiveFilter("fixed_asset")}
                   className={`px-2.5 py-1 text-xs rounded font-medium transition ${
                     activeFilter === "fixed_asset"
-                      ? "bg-[#fdf2f7] text-[#6b1d3e] font-semibold"
-                      : "text-[#5f6672] hover:bg-[#f9fafb]"
+                      ? "bg-accent-soft text-accent-ink font-semibold"
+                      : "text-muted hover:bg-ground"
                   }`}
                 >
                   Aset Tetap
@@ -573,8 +573,8 @@ export function InventoryManager() {
                   onClick={() => setActiveFilter("consumable")}
                   className={`px-2.5 py-1 text-xs rounded font-medium transition ${
                     activeFilter === "consumable"
-                      ? "bg-[#fdf2f7] text-[#6b1d3e] font-semibold"
-                      : "text-[#5f6672] hover:bg-[#f9fafb]"
+                      ? "bg-accent-soft text-accent-ink font-semibold"
+                      : "text-muted hover:bg-ground"
                   }`}
                 >
                   Habis Pakai
@@ -585,7 +585,7 @@ export function InventoryManager() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+              <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="px-5 py-3">Kode Barang</th>
                   <th className="px-5 py-3">Nama Barang</th>
@@ -598,46 +598,46 @@ export function InventoryManager() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-[#5f6672]">
+                    <td colSpan={6} className="px-5 py-8 text-center text-muted">
                       Memuat katalog inventaris...
                     </td>
                   </tr>
                 ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-[#5f6672]">
+                    <td colSpan={6} className="px-5 py-8 text-center text-muted">
                       Belum ada barang pada katalog inventaris.
                     </td>
                   </tr>
                 ) : (
                   filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#fbf7f8] transition">
-                      <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827]">
+                    <tr key={item.id} className="hover:bg-subtle-warm transition">
+                      <td className="px-5 py-3.5 text-[11px] font-semibold text-ink">
                         {item.code}
                       </td>
-                      <td className="px-5 py-3.5 font-medium text-[#111827]">
+                      <td className="px-5 py-3.5 font-medium text-ink">
                         {item.name}
                         {item.description && (
-                          <p className="text-[11px] text-[#5f6672] mt-0.5">{item.description}</p>
+                          <p className="text-[11px] text-muted mt-0.5">{item.description}</p>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-[#5f6672]">
+                      <td className="px-5 py-3.5 text-muted">
                         {item.categoryName || "-"}
                       </td>
                       <td className="px-5 py-3.5">
                         {item.type === "fixed_asset" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-success-tint text-success-ink-soft">
                             <CheckCircle2 className="w-3 h-3" /> Aset Tetap
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fdf2f8] text-[#831843]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-accent-soft text-accent-deep">
                             Habis Pakai
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-[#5f6672] uppercase">
+                      <td className="px-5 py-3.5 text-muted uppercase">
                         {item.unit}
                       </td>
-                      <td className="px-5 py-3.5 tabular-nums text-[#111827]">
+                      <td className="px-5 py-3.5 tabular-nums text-ink">
                         {item.type === "consumable" ? item.minStockAlert : "-"}
                       </td>
                     </tr>
@@ -650,14 +650,14 @@ export function InventoryManager() {
       ) : activeTab === "assets" ? (
         /* Asset Units Table View */
         <div className="bg-white rounded-lg overflow-hidden">
-          <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
+          <div className="p-4 flex items-center justify-between bg-raised">
             <div className="flex items-center gap-2">
-              <MapPin className="w-3.5 h-3.5 text-[#9ca3af]" />
-              <span className="text-xs font-semibold text-[#111827]">Lokasi Penempatan:</span>
+              <MapPin className="w-3.5 h-3.5 text-faint" />
+              <span className="text-xs font-semibold text-ink">Lokasi Penempatan:</span>
               <select
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="text-xs p-1.5 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                className="text-xs p-1.5 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
               >
                 <option value="all">Semua Ruangan</option>
                 {locations.map((loc) => (
@@ -671,7 +671,7 @@ export function InventoryManager() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+              <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="px-5 py-3">Tag Registrasi</th>
                   <th className="px-5 py-3">Nama Aset</th>
@@ -685,68 +685,68 @@ export function InventoryManager() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-8 text-center text-[#5f6672]">
+                    <td colSpan={7} className="px-5 py-8 text-center text-muted">
                       Memuat daftar unit aset...
                     </td>
                   </tr>
                 ) : filteredAssetUnits.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-8 text-center text-[#5f6672]">
+                    <td colSpan={7} className="px-5 py-8 text-center text-muted">
                       Belum ada unit fisik aset yang terdaftar pada lokasi ini.
                     </td>
                   </tr>
                 ) : (
                   filteredAssetUnits.map((unit) => (
-                    <tr key={unit.id} className="hover:bg-[#fbf7f8] transition">
-                      <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827]">
+                    <tr key={unit.id} className="hover:bg-subtle-warm transition">
+                      <td className="px-5 py-3.5 text-[11px] font-semibold text-ink">
                         {unit.assetTag}
                       </td>
-                      <td className="px-5 py-3.5 font-medium text-[#111827]">
+                      <td className="px-5 py-3.5 font-medium text-ink">
                         {unit.itemName}
-                        <p className="text-[11px] text-[#5f6672] mt-0.5">{unit.itemCode}</p>
+                        <p className="text-[11px] text-muted mt-0.5">{unit.itemCode}</p>
                       </td>
-                      <td className="px-5 py-3.5 text-[#5f6672]">
+                      <td className="px-5 py-3.5 text-muted">
                         {unit.serialNumber || "-"}
                       </td>
-                      <td className="px-5 py-3.5 text-[#111827]">
+                      <td className="px-5 py-3.5 text-ink">
                         <span className="font-medium">{unit.locationName || "-"}</span>
                       </td>
                       <td className="px-5 py-3.5">
                         {unit.status === "available" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-success-tint text-success-ink-soft">
                             Tersedia
                           </span>
                         ) : unit.status === "loaned" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#eff6ff] text-[#1e40af]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-info-soft text-info-ink">
                             Dipinjam
                           </span>
                         ) : unit.status === "maintenance" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fffbeb] text-[#92400e]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-warning-soft text-warning-ink">
                             <Wrench className="w-3 h-3" /> Pemeliharaan
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f3f4f6] text-[#374151]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-subtle text-ink-soft">
                             Dihapuskan
                           </span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
                         {unit.condition === "good" ? (
-                          <span className="text-[#166534] font-medium">Baik</span>
+                          <span className="text-success-ink-soft font-medium">Baik</span>
                         ) : unit.condition === "light_damage" ? (
-                          <span className="text-[#b45309] font-medium flex items-center gap-1">
+                          <span className="text-warning font-medium flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" /> Rusak Ringan
                           </span>
                         ) : (
-                          <span className="text-[#991b1b] font-medium">Rusak Berat/Hilang</span>
+                          <span className="text-danger-ink-soft font-medium">Rusak Berat/Hilang</span>
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <button
                           onClick={() => setSelectedUnitForLabel(unit)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-[#f9fafb] hover:bg-[#f3f4f6] text-[#111827] rounded transition font-medium"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-ground hover:bg-subtle text-ink rounded transition font-medium"
                         >
-                          <QrCode className="w-3.5 h-3.5 text-[#b8336a]" /> Preview Tag
+                          <QrCode className="w-3.5 h-3.5 text-accent" /> Preview Tag
                         </button>
                       </td>
                     </tr>
@@ -759,13 +759,13 @@ export function InventoryManager() {
       ) : activeTab === "loans" ? (
         /* Loans & Circulation Table View */
         <div className="bg-white rounded-lg overflow-hidden">
-          <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
-            <span className="text-xs font-semibold text-[#111827]">Riwayat Peminjaman & Serah Terima</span>
+          <div className="p-4 flex items-center justify-between bg-raised">
+            <span className="text-xs font-semibold text-ink">Riwayat Peminjaman & Serah Terima</span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+              <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
                 <tr>
                   <th className="px-5 py-3">Tag Aset</th>
                   <th className="px-5 py-3">Nama Barang</th>
@@ -779,47 +779,47 @@ export function InventoryManager() {
               <tbody>
                 {loans.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-5 py-8 text-center text-[#5f6672]">
+                    <td colSpan={7} className="px-5 py-8 text-center text-muted">
                       Belum ada catatan sirkulasi peminjaman aset.
                     </td>
                   </tr>
                 ) : (
                   loans.map((loan) => (
-                    <tr key={loan.id} className="hover:bg-[#fbf7f8] transition">
-                      <td className="px-5 py-3.5 text-[11px] font-semibold text-[#111827]">
+                    <tr key={loan.id} className="hover:bg-subtle-warm transition">
+                      <td className="px-5 py-3.5 text-[11px] font-semibold text-ink">
                         {loan.assetTag}
                       </td>
-                      <td className="px-5 py-3.5 font-medium text-[#111827]">
+                      <td className="px-5 py-3.5 font-medium text-ink">
                         {loan.itemName}
                       </td>
-                      <td className="px-5 py-3.5 text-[#111827]">
+                      <td className="px-5 py-3.5 text-ink">
                         {loan.borrowerName || "Staff"}
                       </td>
-                      <td className="px-5 py-3.5 text-[#5f6672]">
+                      <td className="px-5 py-3.5 text-muted">
                         {loan.purpose}
                       </td>
-                      <td className="px-5 py-3.5 text-[#111827]">
+                      <td className="px-5 py-3.5 text-ink">
                         {new Date(loan.expectedReturnDate).toLocaleDateString("id-ID")}
                       </td>
                       <td className="px-5 py-3.5">
                         {loan.status === "pending" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fffbeb] text-[#92400e]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-warning-soft text-warning-ink">
                             Menunggu Persetujuan
                           </span>
                         ) : loan.status === "overdue" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#ffedea] text-[#831c1e]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-danger-soft text-danger-ink">
                             Terlambat
                           </span>
                         ) : loan.status === "borrowed" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#eff6ff] text-[#1e40af]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-info-soft text-info-ink">
                             Sedang Dipinjam
                           </span>
                         ) : loan.status === "returned" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-success-tint text-success-ink-soft">
                             Sudah Kembali
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fef2f2] text-[#991b1b]">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-danger-tint text-danger-ink-soft">
                             Ditolak
                           </span>
                         )}
@@ -830,14 +830,14 @@ export function InventoryManager() {
                             <button
                               onClick={() => handleApproveLoan(loan.id, "approve")}
                               title="Setujui"
-                              className="p-1 bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0] rounded transition"
+                              className="p-1 bg-success-soft text-success-ink-soft hover:bg-success-chip rounded transition"
                             >
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleApproveLoan(loan.id, "reject")}
                               title="Tolak"
-                              className="p-1 bg-[#fee2e2] text-[#991b1b] hover:bg-[#fecaca] rounded transition"
+                              className="p-1 bg-danger-chip-soft text-danger-ink-soft hover:bg-danger-chip rounded transition"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -846,7 +846,7 @@ export function InventoryManager() {
                         {(loan.status === "borrowed" || loan.status === "overdue") && (
                           <button
                             onClick={() => setShowReturnModal(loan)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-[#b8336a] text-white rounded font-medium shadow-xs hover:bg-[#a02b5b] transition"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-accent text-white rounded font-medium shadow-xs hover:bg-accent-strong transition"
                           >
                             <RotateCcw className="w-3 h-3" /> Terima & Cek
                           </button>
@@ -863,13 +863,13 @@ export function InventoryManager() {
         /* Consumables & Stock Movements View */
         <div className="space-y-6">
           <div className="bg-white rounded-lg overflow-hidden">
-            <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
-              <span className="text-xs font-semibold text-[#111827]">Kartu Kendali Mutasi Persediaan ATK</span>
+            <div className="p-4 flex items-center justify-between bg-raised">
+              <span className="text-xs font-semibold text-ink">Kartu Kendali Mutasi Persediaan ATK</span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+                <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="px-5 py-3">Nama Barang Habis Pakai</th>
                     <th className="px-5 py-3">Jenis Mutasi</th>
@@ -882,41 +882,41 @@ export function InventoryManager() {
                 <tbody>
                   {stockMovements.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-8 text-center text-[#5f6672]">
+                      <td colSpan={6} className="px-5 py-8 text-center text-muted">
                         Belum ada riwayat mutasi persediaan ATK.
                       </td>
                     </tr>
                   ) : (
                     stockMovements.map((mv) => (
-                      <tr key={mv.id} className="hover:bg-[#fbf7f8] transition">
-                        <td className="px-5 py-3.5 font-medium text-[#111827]">
+                      <tr key={mv.id} className="hover:bg-subtle-warm transition">
+                        <td className="px-5 py-3.5 font-medium text-ink">
                           {mv.itemName}
                         </td>
                         <td className="px-5 py-3.5">
                           {mv.type === "in" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-success-tint text-success-ink-soft">
                               + Masuk (Restock)
                             </span>
                           ) : mv.type === "out" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fef2f2] text-[#991b1b]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-danger-tint text-danger-ink-soft">
                               - Keluar (Requisition)
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fdf2f8] text-[#831843]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-accent-soft text-accent-deep">
                               Koreksi / Opname
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 tabular-nums font-semibold text-[#111827]">
+                        <td className="px-5 py-3.5 tabular-nums font-semibold text-ink">
                           {mv.quantity} {mv.unit}
                         </td>
-                        <td className="px-5 py-3.5 tabular-nums font-bold text-[#b8336a]">
+                        <td className="px-5 py-3.5 tabular-nums font-bold text-accent">
                           {mv.balanceAfter} {mv.unit}
                         </td>
-                        <td className="px-5 py-3.5 text-[#5f6672]">
+                        <td className="px-5 py-3.5 text-muted">
                           {mv.notes || "-"}
                         </td>
-                        <td className="px-5 py-3.5 text-[#5f6672]">
+                        <td className="px-5 py-3.5 text-muted">
                           {new Date(mv.createdAt).toLocaleString("id-ID")}
                         </td>
                       </tr>
@@ -928,16 +928,16 @@ export function InventoryManager() {
           </div>
 
           <div className="bg-white rounded-lg overflow-hidden">
-            <div className="p-4 flex items-center justify-between bg-[#fcfcfd]">
-              <span className="text-xs font-semibold text-[#111827]">Permintaan Barang Habis Pakai</span>
-              <span className="text-[11px] text-[#5f6672]">
+            <div className="p-4 flex items-center justify-between bg-raised">
+              <span className="text-xs font-semibold text-ink">Permintaan Barang Habis Pakai</span>
+              <span className="text-[11px] text-muted">
                 {requisitions.filter((req) => req.status === "pending").length} menunggu persetujuan
               </span>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-[#f9fafb] text-[#5f6672] font-semibold uppercase tracking-wider text-[11px]">
+                <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="px-5 py-3">Barang</th>
                     <th className="px-5 py-3">Pemohon</th>
@@ -950,30 +950,30 @@ export function InventoryManager() {
                 <tbody>
                   {requisitions.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-8 text-center text-[#5f6672]">
+                      <td colSpan={6} className="px-5 py-8 text-center text-muted">
                         Belum ada permintaan barang habis pakai.
                       </td>
                     </tr>
                   ) : (
                     requisitions.map((req) => (
-                      <tr key={req.id} className="hover:bg-[#fbf7f8] transition">
-                        <td className="px-5 py-3.5 font-medium text-[#111827]">{req.itemName}</td>
-                        <td className="px-5 py-3.5 text-[#111827]">{req.requesterName || "Staf"}</td>
-                        <td className="px-5 py-3.5 text-center tabular-nums text-[#111827]">
+                      <tr key={req.id} className="hover:bg-subtle-warm transition">
+                        <td className="px-5 py-3.5 font-medium text-ink">{req.itemName}</td>
+                        <td className="px-5 py-3.5 text-ink">{req.requesterName || "Staf"}</td>
+                        <td className="px-5 py-3.5 text-center tabular-nums text-ink">
                           {req.quantity} {req.unit}
                         </td>
-                        <td className="px-5 py-3.5 text-[#5f6672]">{req.reason}</td>
+                        <td className="px-5 py-3.5 text-muted">{req.reason}</td>
                         <td className="px-5 py-3.5">
                           {req.status === "pending" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fffbeb] text-[#92400e]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-warning-soft text-warning-ink">
                               Menunggu
                             </span>
                           ) : req.status === "approved" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0fdf4] text-[#166534]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-success-tint text-success-ink-soft">
                               Disetujui
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fef2f2] text-[#991b1b]">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-danger-tint text-danger-ink-soft">
                               Ditolak
                             </span>
                           )}
@@ -984,14 +984,14 @@ export function InventoryManager() {
                               <button
                                 onClick={() => handleApproveRequisition(req.id, "approve")}
                                 title="Setujui"
-                                className="p-1 bg-[#dcfce7] text-[#166534] hover:bg-[#bbf7d0] rounded transition"
+                                className="p-1 bg-success-soft text-success-ink-soft hover:bg-success-chip rounded transition"
                               >
                                 <Check className="w-3.5 h-3.5" />
                               </button>
                               <button
                                 onClick={() => handleApproveRequisition(req.id, "reject")}
                                 title="Tolak"
-                                className="p-1 bg-[#fee2e2] text-[#991b1b] hover:bg-[#fecaca] rounded transition"
+                                className="p-1 bg-danger-chip-soft text-danger-ink-soft hover:bg-danger-chip rounded transition"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -1010,19 +1010,19 @@ export function InventoryManager() {
 
       {/* Modal Add Item Master */}
       {showAddItemModal && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-[#111827]">Tambah Barang ke Katalog</h3>
+            <h3 className="text-sm font-bold text-ink">Tambah Barang ke Katalog</h3>
 
             <form onSubmit={handleAddItem} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Kategori
                 </label>
                 <select
                   value={categoryId}
                   onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 >
                   <option value="">Pilih Kategori...</option>
@@ -1036,7 +1036,7 @@ export function InventoryManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Kode Barang (SKU)
                   </label>
                   <input
@@ -1044,18 +1044,18 @@ export function InventoryManager() {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder="e.g. ELK-001"
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Klasifikasi
                   </label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value as "fixed_asset" | "consumable")}
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   >
                     <option value="fixed_asset">Aset Tetap</option>
                     <option value="consumable">Habis Pakai (ATK)</option>
@@ -1064,7 +1064,7 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Nama Barang
                 </label>
                 <input
@@ -1072,14 +1072,14 @@ export function InventoryManager() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Proyektor Epson EB-X500"
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Satuan Unit
                   </label>
                   <input
@@ -1087,20 +1087,20 @@ export function InventoryManager() {
                     value={unit}
                     onChange={(e) => setUnit(e.target.value)}
                     placeholder="e.g. unit, rim, kotak"
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                     required
                   />
                 </div>
                 {type === "consumable" && (
                   <div>
-                    <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                    <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                       Ambang Min. Stok
                     </label>
                     <input
                       type="number"
                       value={minStockAlert}
                       onChange={(e) => setMinStockAlert(Number(e.target.value))}
-                      className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                      className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                       min={0}
                     />
                   </div>
@@ -1108,14 +1108,14 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Keterangan / Spesifikasi
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Opsional rincian atau spesifikasi singkat..."
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] h-16 resize-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
                 />
               </div>
 
@@ -1123,13 +1123,13 @@ export function InventoryManager() {
                 <button
                   type="button"
                   onClick={() => setShowAddItemModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#5f6672] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Simpan Barang
                 </button>
@@ -1141,19 +1141,19 @@ export function InventoryManager() {
 
       {/* Modal Add Asset Unit */}
       {showAddUnitModal && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-[#111827]">Registrasi Unit Fisik Aset</h3>
+            <h3 className="text-sm font-bold text-ink">Registrasi Unit Fisik Aset</h3>
 
             <form onSubmit={handleAddUnit} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Pilih Aset Modal
                 </label>
                 <select
                   value={selectedItemId}
                   onChange={(e) => setSelectedItemId(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 >
                   <option value="">Pilih Barang...</option>
@@ -1167,7 +1167,7 @@ export function InventoryManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Serial Pabrikan
                   </label>
                   <input
@@ -1175,17 +1175,17 @@ export function InventoryManager() {
                     value={serialNumber}
                     onChange={(e) => setSerialNumber(e.target.value)}
                     placeholder="e.g. SN-88921"
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Kondisi Fisik
                   </label>
                   <select
                     value={condition}
                     onChange={(e) => setCondition(e.target.value as "good" | "light_damage" | "heavy_damage" | "lost")}
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   >
                     <option value="good">Baik / Prima</option>
                     <option value="light_damage">Rusak Ringan</option>
@@ -1196,13 +1196,13 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Ruangan / Lokasi Penempatan
                 </label>
                 <select
                   value={selectedLocationId}
                   onChange={(e) => setSelectedLocationId(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 >
                   <option value="">Pilih Lokasi...</option>
@@ -1215,7 +1215,7 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Catatan Tambahan
                 </label>
                 <input
@@ -1223,7 +1223,7 @@ export function InventoryManager() {
                   value={unitNotes}
                   onChange={(e) => setUnitNotes(e.target.value)}
                   placeholder="e.g. Terpasang di plafon lab, kabel HDMI include"
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
 
@@ -1231,13 +1231,13 @@ export function InventoryManager() {
                 <button
                   type="button"
                   onClick={() => setShowAddUnitModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#5f6672] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Registrasikan Unit
                 </button>
@@ -1249,19 +1249,19 @@ export function InventoryManager() {
 
       {/* Modal New Loan Request */}
       {showNewLoanModal && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-[#111827]">Formulir Peminjaman Aset</h3>
+            <h3 className="text-sm font-bold text-ink">Formulir Peminjaman Aset</h3>
 
             <form onSubmit={handleCreateLoan} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Pilih Unit Aset Tersedia
                 </label>
                 <select
                   value={loanUnitId}
                   onChange={(e) => setLoanUnitId(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 >
                   <option value="">Pilih Unit...</option>
@@ -1274,27 +1274,27 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Estimasi Tanggal Pengembalian
                 </label>
                 <input
                   type="date"
                   value={expectedReturnDate}
                   onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Keperluan / Lokasi Penggunaan
                 </label>
                 <textarea
                   value={loanPurpose}
                   onChange={(e) => setLoanPurpose(e.target.value)}
                   placeholder="e.g. Presentasi ujian kelas XII di Aula Sekolah"
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] h-16 resize-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
                   required
                 />
               </div>
@@ -1303,13 +1303,13 @@ export function InventoryManager() {
                 <button
                   type="button"
                   onClick={() => setShowNewLoanModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#5f6672] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Ajukan Peminjaman
                 </button>
@@ -1321,22 +1321,22 @@ export function InventoryManager() {
 
       {/* Modal Return Inspection */}
       {showReturnModal && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-[#111827]">Inspeksi Serah Terima Pengembalian</h3>
-            <p className="text-xs text-[#5f6672]">
-              Unit: <strong className="text-[#111827]">{showReturnModal.assetTag} - {showReturnModal.itemName}</strong>
+            <h3 className="text-sm font-bold text-ink">Inspeksi Serah Terima Pengembalian</h3>
+            <p className="text-xs text-muted">
+              Unit: <strong className="text-ink">{showReturnModal.assetTag} - {showReturnModal.itemName}</strong>
             </p>
 
             <form onSubmit={handleReturnLoan} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Kondisi Fisik Saat Kembali
                 </label>
                 <select
                   value={returnCondition}
                   onChange={(e) => setReturnCondition(e.target.value as "good" | "light_damage" | "heavy_damage" | "lost")}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="good">Baik / Lengkap</option>
                   <option value="light_damage">Rusak Ringan (Lecet/Fungsi Sebagian)</option>
@@ -1346,14 +1346,14 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Catatan Hasil Inspeksi
                 </label>
                 <textarea
                   value={inspectionNotes}
                   onChange={(e) => setInspectionNotes(e.target.value)}
                   placeholder="Catatan verifikator saat serah terima..."
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a] h-16 resize-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
                 />
               </div>
 
@@ -1361,13 +1361,13 @@ export function InventoryManager() {
                 <button
                   type="button"
                   onClick={() => setShowReturnModal(null)}
-                  className="px-3 py-1.5 text-xs text-[#5f6672] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Konfirmasi Pengembalian
                 </button>
@@ -1379,19 +1379,19 @@ export function InventoryManager() {
 
       {/* Modal New Stock Movement */}
       {showNewStockModal && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-[#111827]">Catat Mutasi Persediaan ATK</h3>
+            <h3 className="text-sm font-bold text-ink">Catat Mutasi Persediaan ATK</h3>
 
             <form onSubmit={handleCreateStockMv} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Barang Habis Pakai
                 </label>
                 <select
                   value={stockItemId}
                   onChange={(e) => setStockItemId(e.target.value)}
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   required
                 >
                   <option value="">Pilih Barang...</option>
@@ -1405,13 +1405,13 @@ export function InventoryManager() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Jenis Mutasi
                   </label>
                   <select
                     value={stockMvType}
                     onChange={(e) => setStockMvType(e.target.value as "in" | "out" | "adjustment")}
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                   >
                     <option value="in">Barang Masuk (Restock)</option>
                     <option value="out">Barang Keluar (Pakai)</option>
@@ -1419,14 +1419,14 @@ export function InventoryManager() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                     Jumlah ({stockMvType === "adjustment" ? "Saldo Riil" : "Qty"})
                   </label>
                   <input
                     type="number"
                     value={stockQty}
                     onChange={(e) => setStockQty(Number(e.target.value))}
-                    className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                     min={1}
                     required
                   />
@@ -1434,7 +1434,7 @@ export function InventoryManager() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold uppercase text-[#5f6672] mb-1">
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
                   Keterangan / Alasan
                 </label>
                 <input
@@ -1442,7 +1442,7 @@ export function InventoryManager() {
                   value={stockNotes}
                   onChange={(e) => setStockNotes(e.target.value)}
                   placeholder="e.g. Pembelian batch kantor TU atau alokasi ujian"
-                  className="w-full text-xs p-2 rounded bg-[#f9fafb] text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
 
@@ -1450,13 +1450,13 @@ export function InventoryManager() {
                 <button
                   type="button"
                   onClick={() => setShowNewStockModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#5f6672] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Simpan Mutasi
                 </button>
@@ -1468,21 +1468,21 @@ export function InventoryManager() {
 
       {/* Modal Tag Preview */}
       {selectedUnitForLabel && (
-        <div className="fixed inset-0 bg-[#111827]/40 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4 text-center">
-            <h3 className="text-sm font-bold text-[#111827]">Label Tag Aset</h3>
+            <h3 className="text-sm font-bold text-ink">Label Tag Aset</h3>
 
-            <div className="p-4 bg-[#f9fafb] rounded border border-[#e5e7eb] inline-block w-full">
+            <div className="p-4 bg-ground rounded border border-border inline-block w-full">
               <div className="flex justify-center mb-2">
-                <QrCode className="w-16 h-16 text-[#111827]" />
+                <QrCode className="w-16 h-16 text-ink" />
               </div>
-              <p className="text-sm font-bold text-[#111827]">{selectedUnitForLabel.assetTag}</p>
-              <p className="text-xs font-semibold text-[#b8336a] mt-1">{selectedUnitForLabel.itemName}</p>
-              <p className="text-[11px] text-[#5f6672] mt-0.5">
+              <p className="text-sm font-bold text-ink">{selectedUnitForLabel.assetTag}</p>
+              <p className="text-xs font-semibold text-accent mt-1">{selectedUnitForLabel.itemName}</p>
+              <p className="text-[11px] text-muted mt-0.5">
                 Lokasi: {selectedUnitForLabel.locationName} ({selectedUnitForLabel.locationCode})
               </p>
               {selectedUnitForLabel.serialNumber && (
-                <p className="text-[10px] text-[#9ca3af] mt-1">S/N: {selectedUnitForLabel.serialNumber}</p>
+                <p className="text-[10px] text-faint mt-1">S/N: {selectedUnitForLabel.serialNumber}</p>
               )}
             </div>
 
@@ -1490,7 +1490,7 @@ export function InventoryManager() {
               <button
                 type="button"
                 onClick={() => setSelectedUnitForLabel(null)}
-                className="px-4 py-1.5 text-xs bg-[#b8336a] text-white font-semibold rounded shadow-xs hover:bg-[#a02b5b] transition"
+                className="px-4 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
               >
                 Tutup
               </button>

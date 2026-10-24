@@ -1,19 +1,60 @@
 @import "tailwindcss";
 
+/*
+ * Satu-satunya tempat warna mentah boleh hidup. Komponen memakai utility token
+ * (bg-accent, text-muted, ...) dan `pnpm run lint:tokens` menolak hex di luar blok ini.
+ */
 @theme {
   --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
   --color-ground: #f9fafb;
   --color-surface: #ffffff;
+  --color-raised: #fcfcfd;
+  --color-subtle: #f3f4f6;
+  --color-subtle-warm: #fbf7f8;
   --color-border: #e5e7eb;
+
+  --color-ink: #111827;
+  --color-ink-soft: #374151;
+  --color-ink-muted: #4b5563;
+  --color-muted: #5f6672;
+  --color-muted-soft: #6b7280;
+  --color-faint: #9ca3af;
+
   --color-accent: #b8336a;
+  --color-accent-strong: #a02b5b;
   --color-accent-soft: #fdf2f7;
   --color-accent-ink: #6b1d3e;
+  --color-accent-deep: #831843;
+
+  --color-success: #247b50;
+  --color-success-strong: #1d6340;
+  --color-success-soft: #dcfce7;
+  --color-success-tint: #f0fdf4;
+  --color-success-ink: #14532d;
+  --color-success-ink-soft: #166534;
+  --color-success-chip: #bbf7d0;
+
+  --color-danger: #c4242a;
+  --color-danger-soft: #ffedea;
+  --color-danger-tint: #fef2f2;
+  --color-danger-ink: #831c1e;
+  --color-danger-ink-soft: #991b1b;
+  --color-danger-chip: #fecaca;
+  --color-danger-chip-soft: #fee2e2;
+
+  --color-warning: #b45309;
+  --color-warning-ink: #92400e;
+  --color-warning-soft: #fffbeb;
+
+  --color-info-ink: #1e40af;
+  --color-info-soft: #eff6ff;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #f9fafb;
-  color: #111827;
+  background-color: var(--color-ground);
+  color: var(--color-ink);
 }
 
 .tabular-nums {

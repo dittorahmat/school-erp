@@ -125,42 +125,42 @@ export function FinanceManager() {
     <div className="space-y-6" data-ui>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-[#b8336a]" /> Keuangan & Tagihan SPP
+          <h3 className="text-base font-bold text-ink flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-accent" /> Keuangan & Tagihan SPP
           </h3>
-          <p className="text-xs text-[#5f6672] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Tagihan dari D1 dan bukti transfer tersimpan di Cloudflare R2
           </p>
         </div>
       </div>
 
       {message && (
-        <div className="p-3 bg-[#dcfce7] text-[#14532d] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-success-soft text-success-ink text-xs rounded flex items-center gap-2">
           <Check className="w-4 h-4" /> {message}
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-[#ffedea] text-[#831c1e] text-xs rounded flex items-center gap-2">
+        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded flex items-center gap-2">
           <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
 
       {loading ? (
-        <div className="p-8 text-center text-xs text-[#5f6672]">Memuat tagihan...</div>
+        <div className="p-8 text-center text-xs text-muted">Memuat tagihan...</div>
       ) : invoices.length === 0 ? (
-        <div className="p-8 text-center text-xs text-[#5f6672]">Belum ada tagihan.</div>
+        <div className="p-8 text-center text-xs text-muted">Belum ada tagihan.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {invoices.map((invoice) => (
             <div key={invoice.id} className="p-5 bg-white rounded-lg flex flex-col justify-between">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="text-xs font-semibold text-[#5f6672]">{invoice.id}</span>
-                  <h4 className="font-semibold text-sm text-[#111827] mt-0.5">
+                  <span className="text-xs font-semibold text-muted">{invoice.id}</span>
+                  <h4 className="font-semibold text-sm text-ink mt-0.5">
                     {invoice.componentName}
                   </h4>
-                  <p className="text-xs text-[#5f6672] mt-1">
+                  <p className="text-xs text-muted mt-1">
                     Siswa: {invoice.studentName}
                     {invoice.classroom ? ` (${invoice.classroom})` : ""} &bull; Jatuh Tempo:{" "}
                     {formatDate(invoice.dueDate)}
@@ -169,17 +169,17 @@ export function FinanceManager() {
 
                 <div>
                   {invoice.status === "paid" && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#dcfce7] text-[#14532d]">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-success-soft text-success-ink">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Lunas
                     </span>
                   )}
                   {invoice.status === "pending" && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#fffbeb] text-[#92400e]">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-warning-soft text-warning-ink">
                       <Clock className="w-3.5 h-3.5" /> Menunggu Verifikasi
                     </span>
                   )}
                   {invoice.status === "unpaid" && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-[#ffedea] text-[#831c1e]">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-danger-soft text-danger-ink">
                       <AlertCircle className="w-3.5 h-3.5" /> Belum Dibayar
                     </span>
                   )}
@@ -188,8 +188,8 @@ export function FinanceManager() {
 
               <div className="mt-5 pt-4 flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-xs text-[#5f6672]">Nominal Tagihan:</span>
-                  <p className="text-lg font-bold text-[#111827] tabular-nums">
+                  <span className="text-xs text-muted">Nominal Tagihan:</span>
+                  <p className="text-lg font-bold text-ink tabular-nums">
                     Rp {invoice.amount.toLocaleString("id-ID")}
                   </p>
                 </div>
@@ -203,7 +203,7 @@ export function FinanceManager() {
                         setMessage(null);
                         setError(null);
                       }}
-                      className="inline-flex items-center gap-1.5 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
+                      className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
                     >
                       <UploadCloud className="w-3.5 h-3.5" /> Unggah Bukti
                     </button>
@@ -211,7 +211,7 @@ export function FinanceManager() {
                   {invoice.status === "pending" && user?.role === "admin" && (
                     <button
                       onClick={() => handleVerify(invoice)}
-                      className="inline-flex items-center gap-1.5 bg-[#247b50] hover:bg-[#1d6340] text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
+                      className="inline-flex items-center gap-1.5 bg-success hover:bg-success-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Verifikasi Lunas
                     </button>
@@ -226,8 +226,8 @@ export function FinanceManager() {
       {selectedInvoice && (
         <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h4 className="font-bold text-base text-[#111827]">Unggah Bukti Pembayaran</h4>
-            <p className="text-xs text-[#5f6672]">
+            <h4 className="font-bold text-base text-ink">Unggah Bukti Pembayaran</h4>
+            <p className="text-xs text-muted">
               Tagihan: <strong>{selectedInvoice.componentName}</strong> (Rp{" "}
               {selectedInvoice.amount.toLocaleString("id-ID")})
             </p>
@@ -235,13 +235,13 @@ export function FinanceManager() {
             <form onSubmit={handleUploadProof} className="space-y-4">
               <label
                 htmlFor="proof-upload"
-                className="block p-6 bg-[#f9fafb] rounded text-center cursor-pointer"
+                className="block p-6 bg-ground rounded text-center cursor-pointer"
               >
-                <UploadCloud className="w-6 h-6 text-[#9ca3af] mx-auto mb-2" />
-                <p className="text-xs text-[#111827] font-medium">
+                <UploadCloud className="w-6 h-6 text-faint mx-auto mb-2" />
+                <p className="text-xs text-ink font-medium">
                   {file ? file.name : "Klik untuk memilih gambar struk/bukti transfer"}
                 </p>
-                <p className="text-[11px] text-[#5f6672] mt-0.5">PNG, JPG atau PDF maks 5MB</p>
+                <p className="text-[11px] text-muted mt-0.5">PNG, JPG atau PDF maks 5MB</p>
                 <input
                   type="file"
                   className="hidden"
@@ -258,14 +258,14 @@ export function FinanceManager() {
                     setSelectedInvoice(null);
                     setFile(null);
                   }}
-                  className="px-3 py-1.5 text-xs font-medium text-[#4b5563] hover:bg-[#f3f4f6] rounded transition"
+                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={uploading || !file}
-                  className="px-3.5 py-1.5 text-xs font-medium bg-[#b8336a] hover:bg-[#a12b5b] text-white rounded transition disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-medium bg-accent hover:bg-accent-strong text-white rounded transition disabled:opacity-50"
                 >
                   {uploading ? "Mengunggah..." : "Kirim Bukti Bayar"}
                 </button>

@@ -102,12 +102,12 @@ export function AcademicManager() {
     <div className="space-y-6" data-ui>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-[#111827] flex items-center gap-2">
-            <School className="w-4 h-4 text-[#b8336a]" /> Manajemen Rombongan Belajar (Rombel)
+          <h3 className="text-base font-bold text-ink flex items-center gap-2">
+            <School className="w-4 h-4 text-accent" /> Manajemen Rombongan Belajar (Rombel)
           </h3>
-          <p className="text-xs text-[#5f6672] mt-0.5">
+          <p className="text-xs text-muted mt-0.5">
             Tahun Ajaran Aktif:{" "}
-            <strong className="text-[#b8336a]">
+            <strong className="text-accent">
               {activeYear
                 ? `${activeYear.name} (Semester ${activeYear.semester === "odd" ? "Ganjil" : "Genap"})`
                 : "Memuat..."}
@@ -118,13 +118,13 @@ export function AcademicManager() {
           </p>
         </div>
 
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded bg-[#dcfce7] text-[#14532d]">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded bg-success-soft text-success-ink">
           <CheckCircle2 className="w-3.5 h-3.5" /> Kalender Aktif
         </span>
       </div>
 
       {error && (
-        <div className="p-3 bg-[#ffedea] text-[#831c1e] text-xs rounded">{error}</div>
+        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded">{error}</div>
       )}
 
       <form onSubmit={handleAddClass} className="p-4 bg-white rounded-lg flex flex-wrap items-center gap-3">
@@ -133,13 +133,13 @@ export function AcademicManager() {
           value={newClassName}
           onChange={(e) => setNewClassName(e.target.value)}
           placeholder="Nama Rombel (misal: X-MIPA-3)"
-          className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+          className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
           required
         />
         <select
           value={gradeLevel}
           onChange={(e) => setGradeLevel(Number(e.target.value))}
-          className="px-3 py-1.5 bg-[#f9fafb] rounded text-xs text-[#111827] focus:outline-none focus:ring-1 focus:ring-[#b8336a]"
+          className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
         >
           <option value={7}>Kelas 7</option>
           <option value={8}>Kelas 8</option>
@@ -151,28 +151,28 @@ export function AcademicManager() {
         <button
           type="submit"
           disabled={saving}
-          className="inline-flex items-center gap-1.5 bg-[#b8336a] hover:bg-[#a12b5b] text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
         >
           <Plus className="w-3.5 h-3.5" /> {saving ? "Menyimpan..." : "Tambah Rombel"}
         </button>
       </form>
 
       {loading ? (
-        <div className="p-8 text-center text-xs text-[#5f6672]">Memuat data rombel...</div>
+        <div className="p-8 text-center text-xs text-muted">Memuat data rombel...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {classrooms.map((cls) => (
             <div key={cls.id} className="p-4 bg-white rounded-lg flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-xs text-[#111827]">{cls.name}</h4>
-                <p className="text-[11px] text-[#5f6672] mt-0.5">
+                <h4 className="font-semibold text-xs text-ink">{cls.name}</h4>
+                <p className="text-[11px] text-muted mt-0.5">
                   Tingkat {cls.gradeLevel} &bull; {cls.studentCount ?? 0} Siswa
                 </p>
-                <p className="text-[11px] text-[#5f6672] mt-0.5 flex items-center gap-1">
+                <p className="text-[11px] text-muted mt-0.5 flex items-center gap-1">
                   <Users className="w-3 h-3" /> {cls.homeroomTeacher || "Belum ditentukan"}
                 </p>
               </div>
-              <span className="p-2 bg-[#fdf2f7] rounded text-[#b8336a]">
+              <span className="p-2 bg-accent-soft rounded text-accent">
                 <Calendar className="w-4 h-4" />
               </span>
             </div>
