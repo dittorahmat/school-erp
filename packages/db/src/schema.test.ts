@@ -18,6 +18,8 @@ describe("Database Schema Entities", () => {
   it("should have all tables defined properly", () => {
     expect(users).toBeDefined();
     expect(academicYears).toBeDefined();
+    expect(academicYears.startDate).toBeDefined();
+    expect(academicYears.endDate).toBeDefined();
     expect(classrooms).toBeDefined();
     expect(subjects).toBeDefined();
     expect(feeComponents).toBeDefined();
