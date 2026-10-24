@@ -52,8 +52,8 @@ describe("Demo dataset integrity", () => {
   });
 
   it("provides 45 attendance days and the documented Ahmad summary", () => {
-    expect(demoAttendanceSessions).toHaveLength(45);
-    expect(demoAttendanceRecords).toHaveLength(45 * 5);
+    expect(demoAttendanceSessions).toHaveLength(90);
+    expect(demoAttendanceRecords).toHaveLength(90 * 4);
 
     const ahmad = demoAttendanceRecords.filter((record) => record.studentId === "usr_student_1");
     const count = (status: string) => ahmad.filter((record) => record.status === status).length;

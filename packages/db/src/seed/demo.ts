@@ -369,6 +369,13 @@ const xMipa1Students = [
   "usr_student_6",
 ];
 
+const xMipa2Students = ["usr_student_2", "usr_student_7", "usr_student_8"];
+
+const attendanceClasses = [
+  { classroomId: "cls_10_mipa_1", teacherId: "usr_teacher_1", students: xMipa1Students },
+  { classroomId: "cls_10_mipa_2", teacherId: "usr_teacher_2", students: xMipa2Students },
+];
+
 const attendancePlan: Record<
   string,
   { sick: number[]; permit: number[]; absent: number[] }
@@ -378,47 +385,53 @@ const attendancePlan: Record<
   usr_student_4: { sick: [15], permit: [], absent: [] },
   usr_student_5: { sick: [7], permit: [18, 33], absent: [28, 42] },
   usr_student_6: { sick: [22], permit: [38], absent: [] },
+  usr_student_2: { sick: [12], permit: [], absent: [] },
+  usr_student_7: { sick: [5], permit: [20], absent: [] },
+  usr_student_8: { sick: [8, 30], permit: [15], absent: [] },
 };
 
-export const demoAttendanceSessions: AttendanceSessionRow[] = demoSchoolDays.map(
-  (date) => ({
-    id: `att_sess_${date}`,
-    classroomId: "cls_10_mipa_1",
-    subjectId: null,
-    recordedById: "usr_teacher_1",
-    date,
-    createdAt: at(date),
-  })
+export const demoAttendanceSessions: AttendanceSessionRow[] = attendanceClasses.flatMap(
+  (classroom) =>
+    demoSchoolDays.map((date) => ({
+      id: `att_sess_${classroom.classroomId}_${date}`,
+      classroomId: classroom.classroomId,
+      subjectId: null,
+      recordedById: classroom.teacherId,
+      date,
+      createdAt: at(date),
+    }))
 );
 
-export const demoAttendanceRecords: AttendanceRecordRow[] =
-  demoSchoolDays.flatMap((date, dayIndex) =>
-    xMipa1Students.map((studentId) => {
-      const plan = attendancePlan[studentId] ?? { sick: [], permit: [], absent: [] };
-      const status = plan.sick.includes(dayIndex)
-        ? ("sick" as const)
-        : plan.permit.includes(dayIndex)
-          ? ("permit" as const)
-          : plan.absent.includes(dayIndex)
-            ? ("absent" as const)
-            : ("present" as const);
-      const remarks =
-        status === "sick"
-          ? "Surat keterangan orang tua"
-          : status === "permit"
-            ? "Kegiatan lomba di luar sekolah"
-            : status === "absent"
-              ? "Belum ada konfirmasi"
-              : null;
-      return {
-        id: `att_rec_${studentId}_${date}`,
-        sessionId: `att_sess_${date}`,
-        studentId,
-        status,
-        remarks,
-      };
-    })
-  );
+export const demoAttendanceRecords: AttendanceRecordRow[] = attendanceClasses.flatMap(
+  (classroom) =>
+    demoSchoolDays.flatMap((date, dayIndex) =>
+      classroom.students.map((studentId) => {
+        const plan = attendancePlan[studentId] ?? { sick: [], permit: [], absent: [] };
+        const status = plan.sick.includes(dayIndex)
+          ? ("sick" as const)
+          : plan.permit.includes(dayIndex)
+            ? ("permit" as const)
+            : plan.absent.includes(dayIndex)
+              ? ("absent" as const)
+              : ("present" as const);
+        const remarks =
+          status === "sick"
+            ? "Surat keterangan orang tua"
+            : status === "permit"
+              ? "Kegiatan lomba di luar sekolah"
+              : status === "absent"
+                ? "Belum ada konfirmasi"
+                : null;
+        return {
+          id: `att_rec_${studentId}_${date}`,
+          sessionId: `att_sess_${classroom.classroomId}_${date}`,
+          studentId,
+          status,
+          remarks,
+        };
+      })
+    )
+);
 
 // ---------------------------------------------------------------------------
 // Finance
@@ -573,6 +586,24 @@ const scorePlan: Record<string, Record<string, [number, number, number]>> = {
     sub_bin: [82, 80, 84],
     sub_fis: [79, 77, 81],
     sub_eng: [86, 84, 88],
+  },
+  usr_student_2: {
+    sub_mat: [90, 88, 92],
+    sub_bin: [92, 90, 93],
+    sub_fis: [86, 84, 88],
+    sub_eng: [94, 92, 95],
+  },
+  usr_student_7: {
+    sub_mat: [80, 78, 82],
+    sub_bin: [82, 80, 84],
+    sub_fis: [78, 76, 80],
+    sub_eng: [84, 82, 86],
+  },
+  usr_student_8: {
+    sub_mat: [75, 73, 77],
+    sub_bin: [78, 76, 80],
+    sub_fis: [72, 70, 74],
+    sub_eng: [80, 78, 82],
   },
 };
 
