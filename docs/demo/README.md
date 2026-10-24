@@ -59,6 +59,9 @@ Buka `http://localhost:5173`. Seed dapat dijalankan berulang tanpa menggandakan 
 cd apps/api
 pnpm exec wrangler d1 execute school-erp-db --remote --command "SELECT name FROM sqlite_master WHERE type='table'"
 
+# 1b. Jika tabel 0000 sudah ada tetapi riwayat migrasi belum ada, baseline dulu:
+pnpm exec wrangler d1 execute school-erp-db --remote --command "CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL); INSERT OR IGNORE INTO d1_migrations (name) VALUES ('0000_elite_lionheart.sql');"
+
 # 2. Terapkan migrasi
 pnpm exec wrangler d1 migrations apply school-erp-db --remote
 
@@ -69,6 +72,15 @@ pnpm run deploy
 # 4. Tanam data demo (aditif, idempoten)
 node scripts/seed-demo.mjs --base https://school-erp.tech1solusi.workers.dev
 ```
+
+Sebelum migrasi produksi, ekspor D1 sebagai cadangan:
+
+```bash
+cd apps/api
+pnpm exec wrangler d1 export school-erp-db --remote --output backup-pre-demo.sql
+```
+
+Rollback aman: kembalikan Worker ke versi sebelumnya dengan `pnpm exec wrangler rollback`, lalu hapus baris demo berdasarkan ID tetap (`usr_*`, `cls_*`, `INV-*`) bila diperlukan. Migrasi `0001` hanya menambah tabel/kolom, tidak menghapus data.
 
 Smoke test **tidak** dijalankan ke produksi secara default karena membuat data uji baru. Untuk produksi, verifikasi manual melalui studi kasus.
 
