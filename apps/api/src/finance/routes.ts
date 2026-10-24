@@ -2,85 +2,303 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Bindings } from "../index";
 import { authMiddleware, requireRoles } from "../auth/middleware";
-import { createDb, invoices, feeComponents, demoSeedInvoices } from "@school-erp/db";
+import {
+  academicYears,
+  and,
+  classrooms,
+  createDb,
+  demoAcademicYears,
+  demoEnrollments,
+  demoGuardianStudents,
+  demoSeedInvoices,
+  demoUsers,
+  desc,
+  eq,
+  feeComponents,
+  guardianStudents,
+  invoices,
+  studentEnrollments,
+  users,
+} from "@school-erp/db";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
 
 financeRouter.use("*", authMiddleware());
 
+const batchSchema = z.object({
+  month: z.string().regex(/^\d{4}-\d{2}$/),
+  amount: z.number().positive().optional(),
+  componentId: z.string().optional(),
+});
+
+const verifySchema = z.object({
+  invoiceId: z.string().min(1),
+  status: z.enum(["paid", "unpaid"]),
+});
+
+async function resolveDemoStudentIds(
+  db: ReturnType<typeof createDb>,
+  user: { sub: string; username: string; role: string }
+) {
+  if (user.role === "admin" || user.role === "teacher") return null;
+  if (user.role === "student") return [user.sub];
+
+  try {
+    const links = await db
+      .select({ studentId: guardianStudents.studentId })
+      .from(guardianStudents)
+      .where(eq(guardianStudents.guardianId, user.sub));
+    if (links.length > 0) return links.map((link) => link.studentId);
+  } catch {
+    // fallback below
+  }
+
+  const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
+  if (!demoGuardian) return [];
+  return demoGuardianStudents
+    .filter((link) => link.guardianId === demoGuardian.id)
+    .map((link) => link.studentId);
+}
+
+async function canAccessInvoice(
+  db: ReturnType<typeof createDb>,
+  user: { sub: string; username: string; role: string },
+  studentId: string
+) {
+  if (user.role === "admin" || user.role === "teacher") return true;
+  if (user.role === "student") return user.sub === studentId;
+
+  try {
+    const links = await db
+      .select({ id: guardianStudents.id })
+      .from(guardianStudents)
+      .where(
+        and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
+      )
+      .limit(1);
+    if (links.length > 0) return true;
+  } catch {
+    // fallback below
+  }
+
+  const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
+  return Boolean(
+    demoGuardian &&
+      demoGuardianStudents.some(
+        (link) => link.guardianId === demoGuardian.id && link.studentId === studentId
+      )
+  );
+}
+
 // GET /api/finance/invoices
 financeRouter.get("/invoices", async (c) => {
-  return c.json({ data: demoSeedInvoices });
+  const db = createDb(c.env.DB);
+  const user = c.get("user");
+  const requestedStudent = c.req.query("studentId");
+  const month = c.req.query("month");
+  const status = c.req.query("status");
+
+  const allowedStudentIds = await resolveDemoStudentIds(db, user);
+
+  try {
+    const rows = await db
+      .select({
+        id: invoices.id,
+        studentId: invoices.studentId,
+        studentName: users.fullName,
+        classroom: classrooms.name,
+        componentName: feeComponents.name,
+        amount: invoices.amount,
+        month: invoices.month,
+        status: invoices.status,
+        paymentProofUrl: invoices.paymentProofUrl,
+        paidAt: invoices.paidAt,
+        createdAt: invoices.createdAt,
+      })
+      .from(invoices)
+      .leftJoin(users, eq(invoices.studentId, users.id))
+      .leftJoin(feeComponents, eq(invoices.feeComponentId, feeComponents.id))
+      .leftJoin(studentEnrollments, eq(studentEnrollments.studentId, invoices.studentId))
+      .leftJoin(classrooms, eq(classrooms.id, studentEnrollments.classroomId))
+      .orderBy(desc(invoices.createdAt));
+
+    if (rows.length > 0) {
+      const deduped = Array.from(new Map(rows.map((row) => [row.id, row])).values());
+      const filtered = deduped.filter((row) => {
+        if (allowedStudentIds && !allowedStudentIds.includes(row.studentId)) return false;
+        if (requestedStudent && row.studentId !== requestedStudent) return false;
+        if (month && row.month !== month) return false;
+        if (status && row.status !== status) return false;
+        return true;
+      });
+      return c.json({
+        data: filtered.map((row) => ({
+          ...row,
+          dueDate: row.month ? `${row.month}-15` : null,
+        })),
+      });
+    }
+  } catch {
+    // fallback below
+  }
+
+  const demoStudentIds = allowedStudentIds;
+  return c.json({
+    data: demoSeedInvoices.filter((invoice) => {
+      if (demoStudentIds && !demoStudentIds.includes(invoice.studentId)) return false;
+      if (requestedStudent && invoice.studentId !== requestedStudent) return false;
+      if (month && invoice.month !== month) return false;
+      if (status && invoice.status !== status) return false;
+      return true;
+    }),
+  });
 });
 
 // POST /api/finance/batch-generate (Admin TU)
 financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
   const body = await c.req.json().catch(() => null);
-  const schema = z.object({
-    month: z.string().regex(/^\d{4}-\d{2}$/),
-    amount: z.number().positive(),
-  });
-
-  const parsed = schema.safeParse(body);
+  const parsed = batchSchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: "Invalid batch billing payload" }, 400);
   }
 
-  return c.json({
-    message: `Berhasil menerbitkan tagihan bulan ${parsed.data.month} untuk semua siswa aktif`,
-    generatedCount: 192,
-  });
+  const db = createDb(c.env.DB);
+  const { month } = parsed.data;
+  let componentId = parsed.data.componentId ?? "fee_spp";
+  let amount = parsed.data.amount;
+
+  try {
+    const activeYears = await db
+      .select()
+      .from(academicYears)
+      .where(eq(academicYears.isActive, true))
+      .limit(1);
+
+    const yearId = activeYears[0]?.id ?? demoAcademicYears.find((year) => year.isActive)?.id;
+
+    const components = await db
+      .select()
+      .from(feeComponents)
+      .where(eq(feeComponents.id, componentId))
+      .limit(1);
+    if (!amount) amount = components[0]?.amount ?? 350000;
+
+    const enrollments = await db
+      .select({ studentId: studentEnrollments.studentId })
+      .from(studentEnrollments);
+    const studentIds =
+      enrollments.length > 0
+        ? Array.from(new Set(enrollments.map((enrollment) => enrollment.studentId)))
+        : demoEnrollments.map((enrollment) => enrollment.studentId);
+
+    const existing = await db
+      .select({ studentId: invoices.studentId })
+      .from(invoices)
+      .where(and(eq(invoices.month, month), eq(invoices.feeComponentId, componentId)));
+    const alreadyBilled = new Set(existing.map((invoice) => invoice.studentId));
+
+    const rows = studentIds
+      .filter((studentId) => !alreadyBilled.has(studentId))
+      .map((studentId, index) => ({
+        id: `INV-${month}-${String(Date.now()).slice(-5)}-${String(index + 1).padStart(2, "0")}`,
+        studentId,
+        academicYearId: yearId ?? "ay_2026_2027",
+        feeComponentId: componentId,
+        month,
+        amount: amount as number,
+        status: "unpaid" as const,
+        paymentProofUrl: null,
+        paidAt: null,
+        createdAt: new Date(),
+      }));
+
+    for (let index = 0; index < rows.length; index += 10) {
+      await db.insert(invoices).values(rows.slice(index, index + 10));
+    }
+
+    return c.json({
+      message: `Berhasil menerbitkan tagihan bulan ${month}`,
+      generatedCount: rows.length,
+      skippedCount: studentIds.length - rows.length,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menerbitkan tagihan", message: String(err) }, 500);
+  }
 });
 
-// POST /api/finance/upload-proof (Multipart form data upload via Worker proxy ke R2)
+// POST /api/finance/upload-proof
 financeRouter.post("/upload-proof", async (c) => {
-  const formData = await c.req.formData();
-  const file = formData.get("proof") as File | null;
-  const invoiceId = formData.get("invoiceId") as string | null;
+  const formData = await c.req.formData().catch(() => null);
+  const file = formData?.get("proof");
+  const invoiceId = formData?.get("invoiceId");
 
-  if (!file || !invoiceId) {
+  if (!(file instanceof File) || typeof invoiceId !== "string" || !invoiceId) {
     return c.json({ error: "Berkas bukti bayar dan invoiceId wajib diisi" }, 400);
   }
 
-  const key = `proofs/${invoiceId}-${Date.now()}-${file.name}`;
+  const user = c.get("user");
+  const db = createDb(c.env.DB);
 
   try {
+    const invoiceRows = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId))
+      .limit(1);
+    if (!invoiceRows[0]) return c.json({ error: "Tagihan tidak ditemukan" }, 404);
+
+    if (!(await canAccessInvoice(db, user, invoiceRows[0].studentId))) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const key = `proofs/${invoiceId}-${Date.now()}-${file.name}`;
     if (c.env.STORAGE) {
       await c.env.STORAGE.put(key, file.stream(), {
-        httpMetadata: {
-          contentType: file.type || "application/octet-stream",
-        },
+        httpMetadata: { contentType: file.type || "application/octet-stream" },
       });
     }
-  } catch {
-    // Graceful fallback
-  }
 
-  return c.json({
-    message: "Bukti transfer berhasil diunggah ke Cloudflare R2",
-    key,
-    status: "pending",
-  });
+    await db
+      .update(invoices)
+      .set({ status: "pending", paymentProofUrl: key })
+      .where(eq(invoices.id, invoiceId));
+
+    return c.json({
+      message: "Bukti transfer berhasil diunggah dan menunggu verifikasi",
+      key,
+      status: "pending",
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal mengunggah bukti bayar", message: String(err) }, 500);
+  }
 });
 
 // POST /api/finance/verify (Admin TU verifikasi lunas)
 financeRouter.post("/verify", requireRoles("admin"), async (c) => {
   const body = await c.req.json().catch(() => null);
-  const schema = z.object({
-    invoiceId: z.string().min(1),
-    status: z.enum(["paid", "unpaid"]),
-  });
-
-  const parsed = schema.safeParse(body);
+  const parsed = verifySchema.safeParse(body);
   if (!parsed.success) {
     return c.json({ error: "Invalid verify payload" }, 400);
   }
 
-  return c.json({
-    message: `Status tagihan ${parsed.data.invoiceId} berhasil diubah menjadi ${parsed.data.status}`,
-    invoiceId: parsed.data.invoiceId,
-    status: parsed.data.status,
-  });
+  const db = createDb(c.env.DB);
+  try {
+    await db
+      .update(invoices)
+      .set({
+        status: parsed.data.status,
+        paidAt: parsed.data.status === "paid" ? new Date() : null,
+      })
+      .where(eq(invoices.id, parsed.data.invoiceId));
+
+    return c.json({
+      message: `Status tagihan ${parsed.data.invoiceId} berhasil diubah menjadi ${parsed.data.status}`,
+      invoiceId: parsed.data.invoiceId,
+      status: parsed.data.status,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memverifikasi tagihan", message: String(err) }, 500);
+  }
 });
 
 export { financeRouter };
