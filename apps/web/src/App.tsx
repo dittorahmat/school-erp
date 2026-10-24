@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LoginPage } from "./components/LoginPage";
 import { AcademicManager } from "./components/AcademicManager";
@@ -20,11 +20,46 @@ import {
   Package,
 } from "lucide-react";
 
+const formatShortDate = (value?: string | null) => {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(`${value}T00:00:00+07:00`));
+};
+
+const todayLabel = new Intl.DateTimeFormat("id-ID", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "Asia/Jakarta",
+}).format(new Date());
+
+interface ActiveYear {
+  name: string;
+  semester: "odd" | "even";
+  startDate: string | null;
+  endDate: string | null;
+}
+
 function MainDashboard() {
   const { user, logout } = useAuth();
+  const [activeYear, setActiveYear] = useState<ActiveYear | null>(null);
   const [activeTab, setActiveTab] = useState<
     "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent" | "inventory"
   >("overview");
+
+  useEffect(() => {
+    fetch("/api/academic/years?active=true")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data) setActiveYear(json.data);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const navItems = [
     { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
@@ -111,8 +146,18 @@ function MainDashboard() {
             </h1>
             <span className="text-xs text-[#9ca3af]">&bull;</span>
             <span className="text-xs text-[#6b7280]">
-              Tahun Ajaran 2025/2026 (Semester Ganjil)
+              {activeYear
+                ? `Tahun Ajaran ${activeYear.name} · Semester ${
+                    activeYear.semester === "odd" ? "Ganjil" : "Genap"
+                  }${
+                    activeYear.startDate && activeYear.endDate
+                      ? ` · ${formatShortDate(activeYear.startDate)} - ${formatShortDate(activeYear.endDate)}`
+                      : ""
+                  }`
+                : "Memuat tahun ajaran..."}
             </span>
+            <span className="text-xs text-[#9ca3af]">&bull;</span>
+            <span className="text-xs text-[#6b7280]">{todayLabel}</span>
           </div>
 
           <div className="flex items-center gap-4">
