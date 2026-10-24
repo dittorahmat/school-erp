@@ -13,7 +13,7 @@ Dokumen ini mendefinisikan istilah resmi (canonical vocabulary) yang digunakan d
 - **Relasi Wali-Siswa (Guardian-Student Association)**: Hubungan formal antara akun wali dan siswa (misalnya: Ayah, Ibu, Wali Sah) yang memungkinkan pemantauan terpusat untuk orang tua dengan lebih dari satu anak di sekolah yang sama.
 
 ### Akademik & Kesiswaan
-- **Tahun Ajaran (Academic Year)**: Siklus kalender pendidikan sekolah (misalnya 2025/2026) yang dibagi menjadi dua periode: Semester Ganjil dan Semester Genap.
+- **Tahun Ajaran (Academic Year)**: Siklus kalender pendidikan sekolah (misalnya 2026/2027) yang dibagi menjadi dua periode: Semester Ganjil dan Semester Genap.
 - **Tingkat (Grade Level)**: Jenjang kelas paralel dalam sekolah (misalnya Kelas 7, 8, 9 atau 10, 11, 12).
 - **Rombongan Belajar / Rombel (Classroom / Section)**: Kelompok belajar fisik siswa dalam satu tingkatan pada tahun ajaran tertentu (misalnya "X-MIPA-1") yang dibimbing oleh seorang Wali Kelas.
 - **Penempatan Belajar (Student Enrollment)**: Catatan penempatan siswa ke dalam rombongan belajar tertentu pada tahun ajaran dan semester aktif. Mempertahankan riwayat historis saat siswa naik kelas atau lulus.

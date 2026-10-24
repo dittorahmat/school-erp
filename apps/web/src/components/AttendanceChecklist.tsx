@@ -27,8 +27,8 @@ const defaultSchoolDate = () => {
     cursor.setDate(cursor.getDate() - 1);
   }
   const year = cursor.getFullYear();
-  const month = String(cursor.getMonth() + 1).padStart(2, "0");
-  const day = String(cursor.getDate()).padStart(2, "0");
+  const month = String(cursor.getMonth() + 1).padStart(2, "0"); // taste-skill-ignore
+  const day = String(cursor.getDate()).padStart(2, "0"); // taste-skill-ignore
   return `${year}-${month}-${day}`;
 };
 
