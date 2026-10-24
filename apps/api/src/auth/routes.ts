@@ -32,13 +32,34 @@ authRouter.post("/login", async (c) => {
   }
 
   if (!user) {
-    // Rich demo seed accounts
-    const demoAccounts: Record<string, { pass: string; role: any; name: string }> = {
+    // Bootstrap-only fallback: it may only answer while the database has no admin
+    // row at all, i.e. before the first seed. On any populated deployment an
+    // unknown username must fail closed instead of accepting a code-defined account.
+    let hasAdmin = false;
+    try {
+      const admins = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.role, "admin"))
+        .limit(1);
+      hasAdmin = admins.length > 0;
+    } catch {
+      hasAdmin = true;
+    }
+    if (hasAdmin) {
+      return c.json({ error: "Username atau password salah" }, 401);
+    }
+
+    // Bootstrap accounts for a freshly migrated, unseeded database
+    const demoAccounts: Record<
+      string,
+      { pass: string; role: "admin" | "teacher" | "student" | "guardian"; name: string }
+    > = {
       admin: { pass: "admin123", role: "admin", name: "Hj. Siti Aminah, S.Pd., M.M. (Admin TU)" },
       guru_budi: { pass: "guru123", role: "teacher", name: "Budi Purnomo, S.Pd. (Guru Wali Kelas)" },
       guru_siti: { pass: "guru123", role: "teacher", name: "Siti Rahmawati, M.Pd. (Guru Bahasa)" },
       siswa_ahmad: { pass: "siswa123", role: "student", name: "Ahmad Dahlan (Siswa X-MIPA-1)" },
-      siswa_dewi: { pass: "siswa123", role: "student", name: "Dewi Sartika (Siswa VII-B)" },
+      siswa_dewi: { pass: "siswa123", role: "student", name: "Dewi Sartika (Siswa X-MIPA-2)" },
       siswa_budi: { pass: "siswa123", role: "student", name: "Budi Santoso (Siswa X-MIPA-1)" },
       wali_subagyo: { pass: "wali123", role: "guardian", name: "Ir. Bambang Subagyo (Wali Ahmad & Dewi)" },
       wali_hartono: { pass: "wali123", role: "guardian", name: "Drs. H. Hartono (Wali Budi Santoso)" },

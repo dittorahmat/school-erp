@@ -3,9 +3,11 @@ import { users } from "./auth";
 
 export const academicYears = sqliteTable("academic_years", {
   id: text("id").primaryKey(),
-  name: text("name").notNull(), // e.g. "2025/2026"
+  name: text("name").notNull(), // e.g. "2026/2027"
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(false),
   semester: text("semester", { enum: ["odd", "even"] }).notNull().default("odd"), // ganjil / genap
+  startDate: text("start_date"), // YYYY-MM-DD
+  endDate: text("end_date"), // YYYY-MM-DD
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

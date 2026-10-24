@@ -94,6 +94,27 @@ const createRequisitionSchema = z.object({
   reason: z.string().min(1, "Alasan permintaan wajib diisi"),
 });
 
+const approveRequisitionSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
+type Actor = { sub: string; username: string; role: string };
+
+async function resolveActor(db: ReturnType<typeof createDb>, user: Actor | undefined) {
+  if (!user) return { id: "system", role: "system" };
+  try {
+    const rows = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.username, user.username))
+      .limit(1);
+    if (rows[0]) return rows[0];
+  } catch {
+    // fall through to token identity
+  }
+  return { id: user.sub, role: user.role };
+}
+
 // Categories
 inventoryRouter.get("/categories", async (c) => {
   const db = createDb(c.env.DB);
@@ -370,7 +391,7 @@ inventoryRouter.patch("/asset-units/:id", requireRoles("admin"), async (c) => {
 // Issue #3: Asset Loans & Circulation
 inventoryRouter.get("/loans", async (c) => {
   const db = createDb(c.env.DB);
-  const user = c.get("user" as never) as { id: string; role: string } | undefined;
+  const user = c.get("user" as never) as Actor | undefined;
 
   try {
     const loans = await db
@@ -398,22 +419,42 @@ inventoryRouter.get("/loans", async (c) => {
 
     if (loans.length > 0) {
       const filtered = loans.filter((l) => {
-        if (user?.role !== "admin_tu" && user?.role !== "admin" && l.borrowerId !== user?.id) {
+        if (user?.role !== "admin_tu" && user?.role !== "admin" && l.borrowerId !== user?.sub) {
           return false;
         }
         return true;
       });
-      return c.json({ loans: filtered });
+      const now = Date.now();
+      return c.json({
+        loans: filtered.map((loan) => ({
+          ...loan,
+          status:
+            loan.status === "borrowed" &&
+            new Date(loan.expectedReturnDate as unknown as string).getTime() < now
+              ? "overdue"
+              : loan.status,
+        })),
+      });
     }
   } catch {
     // fallback to demo seed
   }
 
-  return c.json({ loans: demoSeedLoans });
+  const now = Date.now();
+  return c.json({
+    loans: demoSeedLoans.map((loan) => ({
+      ...loan,
+      status:
+        loan.status === "borrowed" &&
+        new Date(loan.expectedReturnDate as unknown as string).getTime() < now
+          ? "overdue"
+          : loan.status,
+    })),
+  });
 });
 
 inventoryRouter.post("/loans", async (c) => {
-  const user = c.get("user" as never) as { id: string } | undefined;
+  const user = c.get("user" as never) as Actor | undefined;
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
   const body = await c.req.json().catch(() => null);
@@ -427,21 +468,24 @@ inventoryRouter.post("/loans", async (c) => {
   const circulation = new AssetCirculation(db);
 
   try {
+    const actor = await resolveActor(db, user);
     const loan = await circulation.requestLoan({
       unitId: data.unitId,
-      borrowerId: user.id,
+      borrowerId: actor.id,
       expectedReturnDate: new Date(data.expectedReturnDate),
       purpose: data.purpose,
     });
     return c.json({ message: "Pengajuan pinjaman berhasil dibuat", loan }, 201);
   } catch (err: unknown) {
-    return c.json({ error: "Gagal membuat permohonan pinjam", message: String(err) }, 500);
+    const message = String(err);
+    const status = message.includes("tidak ditemukan") ? 404 : 400;
+    return c.json({ error: "Gagal membuat permohonan pinjam", message }, status);
   }
 });
 
 inventoryRouter.post("/loans/:id/approval", requireRoles("admin"), async (c) => {
   const loanId = c.req.param("id");
-  const user = c.get("user" as never) as { id: string } | undefined;
+  const user = c.get("user" as never) as Actor | undefined;
   const body = await c.req.json().catch(() => null);
   const parsed = approveLoanSchema.safeParse(body);
   if (!parsed.success) {
@@ -452,15 +496,16 @@ inventoryRouter.post("/loans/:id/approval", requireRoles("admin"), async (c) => 
   const circulation = new AssetCirculation(db);
 
   try {
+    const actor = await resolveActor(db, user);
     const result = await circulation.processApproval(
       loanId,
-      user?.id ?? "system",
+      actor.id,
       parsed.data.action
     );
     return c.json({ message: result.status === "borrowed" ? "Peminjaman disetujui" : "Peminjaman ditolak" });
   } catch (err: unknown) {
     const message = String(err);
-    const status = message.includes("tidak ditemukan") ? 404 : 500;
+    const status = message.includes("tidak ditemukan") ? 404 : 400;
     return c.json({ error: "Gagal memproses persetujuan", message }, status);
   }
 });
@@ -485,7 +530,7 @@ inventoryRouter.post("/loans/:id/return", requireRoles("admin"), async (c) => {
     return c.json({ message: "Aset berhasil dikembalikan dan diinspeksi" });
   } catch (err: unknown) {
     const message = String(err);
-    const status = message.includes("tidak ditemukan") ? 404 : 500;
+    const status = message.includes("tidak ditemukan") ? 404 : 400;
     return c.json({ error: "Gagal memproses pengembalian", message }, status);
   }
 });
@@ -555,7 +600,7 @@ inventoryRouter.post("/stock-movements", requireRoles("admin"), async (c) => {
 
 inventoryRouter.get("/requisitions", async (c) => {
   const db = createDb(c.env.DB);
-  const user = c.get("user" as never) as { id: string; role: string } | undefined;
+  const user = c.get("user" as never) as Actor | undefined;
 
   try {
     const reqs = await db
@@ -577,7 +622,7 @@ inventoryRouter.get("/requisitions", async (c) => {
       .orderBy(desc(inventoryRequisitions.createdAt));
 
     const filtered = reqs.filter((r) => {
-      if (user?.role !== "admin_tu" && user?.role !== "admin" && r.requesterId !== user?.id) {
+      if (user?.role !== "admin_tu" && user?.role !== "admin" && r.requesterId !== user?.sub) {
         return false;
       }
       return true;
@@ -590,7 +635,7 @@ inventoryRouter.get("/requisitions", async (c) => {
 });
 
 inventoryRouter.post("/requisitions", async (c) => {
-  const user = c.get("user" as never) as { id: string } | undefined;
+  const user = c.get("user" as never) as Actor | undefined;
   if (!user) return c.json({ error: "Unauthorized" }, 401);
 
   const body = await c.req.json().catch(() => null);
@@ -604,10 +649,11 @@ inventoryRouter.post("/requisitions", async (c) => {
   const id = `req_${Date.now()}`;
 
   try {
+    const actor = await resolveActor(db, user);
     const requisition = {
       id,
       itemId: data.itemId,
-      requesterId: user.id,
+      requesterId: actor.id,
       quantity: data.quantity,
       reason: data.reason,
       status: "pending" as const,
@@ -618,5 +664,36 @@ inventoryRouter.post("/requisitions", async (c) => {
     return c.json({ message: "Permintaan ATK berhasil diajukan", requisition }, 201);
   } catch (err: unknown) {
     return c.json({ error: "Gagal mengajukan permintaan barang", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.post("/requisitions/:id/approval", requireRoles("admin"), async (c) => {
+  const requisitionId = c.req.param("id");
+  const user = c.get("user" as never) as Actor | undefined;
+  const body = await c.req.json().catch(() => null);
+  const parsed = approveRequisitionSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid requisition approval payload", details: parsed.error }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  const ledger = new StockLedger(db);
+
+  try {
+    const actor = await resolveActor(db, user);
+    const result = await ledger.fulfillRequisition({
+      requisitionId,
+      approverId: actor.id,
+      decision: parsed.data.action,
+    });
+
+    return c.json({
+      message: result.status === "approved" ? "Permintaan ATK disetujui" : "Permintaan ATK ditolak",
+      data: result,
+    });
+  } catch (err: unknown) {
+    const message = String(err);
+    const status = message.includes("tidak ditemukan") ? 404 : 400;
+    return c.json({ error: "Gagal memproses permintaan ATK", message }, status);
   }
 });

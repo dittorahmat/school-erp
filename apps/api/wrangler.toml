@@ -11,6 +11,7 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "school-erp-db"
 database_id = "93c65c0c-289e-405c-afda-737fa4a6219a"
+migrations_dir = "../../packages/db/migrations"
 
 [[r2_buckets]]
 binding = "STORAGE"

@@ -14,45 +14,44 @@ Five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-fo
 
 Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`.
 
-### Engineering Mandate: YAGNI & Conciseness
+### Demo runbook
 
-- **Implement YAGNI**: Jangan membangun abstraksi, lapisan pembungkus, atau fitur spekulatif untuk masa depan yang belum diminta.
-- **Prefer One-Liner Solutions**: Utamakan solusi langsung, ringkas, dan ekspresif. Hindari boilerplate berlebih bila konstruksi satu baris atau bawaan bahasa sudah mencukupi tanpa mengorbankan keterbacaan.
+`docs/demo/STUDI-KASUS-END-TO-END.md` dan `docs/demo/README.md` memuat studi kasus, akun demo, serta prosedur migrate/seed/deploy.
 
-### Architecture & Deployment Mandate (Cloudflare Edge Monolith)
+## Verification loop
 
-- **Single Fullstack Worker**: Seluruh aplikasi disajikan dari satu Edge Worker tunggal di `school-erp.tech1solusi.workers.dev`.
-- **Workers Static Assets**: Frontend SPA di-bundle ke `apps/web/dist` dan disajikan via binding `[assets]` di `apps/api/wrangler.toml`. DILARANG memisahkan frontend ke project Cloudflare Pages terpisah kecuali diminta secara eksplisit.
-- **Pure-JS Edge Drivers**: Hindari native C++ Node.js dependencies (`better-sqlite3`, native bcrypt). Gunakan Web Crypto API dan D1 bindings resmi (`@school-erp/db`).
-- Lihat [ADR 0005](docs/adr/0005-unified-edge-monolith-with-static-assets.md).
+- `pnpm run check` adalah seluruh guardrail: build & typecheck semua workspace, Vitest, taste lint, `lint:tokens`, dan `check:docs`. Wajib exit 0 sebelum commit dan sebelum deploy.
+- CI `.github/workflows/check.yml` menjalankan perintah yang sama pada setiap PR, jadi merah berarti tidak bisa merge.
+- Setelah edit yang mengubah import, export, atau tipe, jalankan `pnpm --filter @school-erp/api build` sebelum memanggil endpoint. Dev server akan reload refactor yang belum selesai dan gagal dengan pesan minified.
+- Perbaikan yang bisa diperiksa mesin masuk ke guardrail, bukan ke file ini: `scripts/lint-tokens.mjs`, `scripts/check-docs.mjs`, `apps/api/src/authz.test.ts`, atau unit test Vitest.
 
-### Database Consumption Pointer (`@school-erp/db`)
+## Menembak API
 
-- Gunakan factory function kanonikal `createDb(c.env.DB)` untuk inisialisasi Drizzle client pada route Hono.
-- Impor seluruh entity skema Drizzle langsung dari root package:
-  ```ts
-  import { createDb, <table_name>, desc, eq } from "@school-erp/db";
-  ```
-- Dilarang mengimpor dari subpath tidak terdaftar seperti `@school-erp/db/schema`.
+- `pnpm probe <role> <METHOD> <path> [json]` — login sesuai peran lalu cetak status dan body. Peran: `admin`, `guru`, `guru2`, `siswa`, `siswa2`, `wali`, `wali2`. Contoh: `pnpm probe siswa GET /api/attendance/summary`.
+- `pnpm demo:smoke` menguji alur demo end-to-end; `pnpm verify:prod` adalah pemeriksaan produksi **read-only**. Keduanya menerima `--base=`.
+- Jangan menulis blok PowerShell/curl inline untuk memanggil endpoint.
 
-### Architecture Mandate: Deep Modules & Pure Domain Seams
+## Konfigurasi otoritatif
 
-- **Deep Modules over Shallow Routes**: Hindari menaruh mutasi status multi-tabel, validasi state-machine, dan kalkulasi saldo mutasi langsung di dalam handler rute HTTP (`apps/api/src/`).
-- **The Interface is the Test Surface**: Logika domain (misal: siklus peminjaman aset `AssetCirculation`, buku besar stok persediaan `StockLedger`) wajib dibungkus ke dalam modul domain murni dengan interface ringkas dan ekspresif.
-- **Pure-JS In-Memory Testability**: Setiap modul domain wajib memiliki unit test Vitest terisolasi (`*.test.ts`) yang dapat diuji tanpa perlu mock seluruh server HTTP Hono. Handler HTTP hanya bertindak sebagai adapter tipis yang menerjemahkan payload JSON ke pemanggilan method modul.
+- Satu-satunya konfigurasi Worker adalah `apps/api/wrangler.toml`. Tidak ada `wrangler.toml` di root.
+- Migrasi D1 berada di `packages/db/migrations`, terhubung lewat `migrations_dir`.
+- Frontend di-bundle ke `apps/web/dist` dan disajikan dari binding `[assets]`. Jangan memisahkan frontend ke Cloudflare Pages terpisah kecuali diminta eksplisit. Lihat [ADR 0005](docs/adr/0005-unified-edge-monolith-with-static-assets.md).
 
-### Verification & Automated Guardrails
+## Arsitektur (butuh judgement, bukan lint)
 
-- Setiap perubahan kode WAJIB divalidasi dengan menjalankan `pnpm run check` (menjalankan typecheck semua workspace, unit test Vitest, dan linter design-taste-frontend dengan alokasi heap aman).
-- Pipeline `pnpm run check` harus keluar dengan status hijau (exit code 0) sebelum commit atau deploy.
+- **Satu Worker fullstack** di `school-erp.tech1solusi.workers.dev`. Driver database pure-JS: Web Crypto dan binding D1, tanpa dependensi native C++.
+- **Akses database**: inisialisasi dengan `createDb(c.env.DB)`, impor skema dan helper Drizzle dari root `@school-erp/db`. Subpath seperti `@school-erp/db/schema` tidak terdaftar.
+- **Deep modules**: mutasi multi-tabel, validasi state-machine, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest. Handler HTTP hanya menerjemahkan payload JSON ke pemanggilan modul. Referensi: `apps/api/src/inventory/circulation.ts` + `ledger.ts`.
+- **Otorisasi**: setiap rute menyatakan perannya. `apps/api/src/authz.test.ts` adalah matriks yang membuktikannya — tambahkan baris saat menambah rute.
+- **Data demo**: `packages/db/src/seed/demo.ts` adalah satu-satunya sumber dataset. Handler tidak boleh mengarang angka; kegagalan query mengembalikan error, bukan data palsu.
+- **Dokumen demo**: `check:docs` memvalidasi setiap ID yang dikutip di `docs/demo/` terhadap dataset. Jangan menulis jumlah pemeriksaan secara hardcoded.
 
-### Frontend Design & UI Mandate
+## Frontend
 
-Semua perubahan pada komponen frontend (`apps/web/`) **WAJIB** melalui dan mematuhi panduan skill **`design-taste-frontend`** (tasteskill v2 anti-slop rules):
-- Gunakan token tema resmi (DM Sans, tabular-nums untuk data/tabel, hindari gradien ungu/indigo generik, hilangkan fake drop-shadows pada elemen istirahat, hindari hairline dividers tanpa substansi).
-- Verifikasi linter wajib bersih: `pnpm run lint:ui` (otomatis memindai seluruh file komponen di `apps/web/src`).
+- Semua perubahan komponen mengikuti skill `design-taste-frontend`; `pnpm run lint:ui` menegakkan aturan mekanisnya.
+- Warna hanya lewat token `@theme` di `apps/web/src/index.css` (`bg-accent`, `text-muted`, `border-border`, ...). `pnpm run lint:tokens` menolak hex di luar blok itu.
+- Angka pada tabel dan KPI memakai `tabular-nums`; font DM Sans.
 
-### Windows Terminal & Command Escaping Convention
+## Issue & commit di Windows
 
-- Hindari argumen inline panjang dengan simbol PowerShell sensitif (`&`, `(`, `)`, `|`).
-- Untuk membuat issue GitHub atau commit git dengan format kaya, gunakan file sementara (`--body-file`) atau skrip batch `.bat` sederhana untuk mencegah parser crash.
+- Untuk body issue/PR yang panjang, tulis ke file lalu gunakan `--body-file`; jangan menempel argumen inline dengan simbol PowerShell sensitif.

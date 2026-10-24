@@ -44,9 +44,29 @@ Sistem dilengkapi akun demo untuk menguji keempat hak akses peran (**Role-Based 
 | **Guru (Wali Kelas)** | `guru_budi` | `guru123` | Checklist Presensi Kelas, Input Buku Nilai Matematika |
 | **Guru Bahasa** | `guru_siti` | `guru123` | Pengampu Bahasa Indonesia & Pengisian Nilai Siswa |
 | **Siswa** | `siswa_ahmad` | `siswa123` | Pantau Rapor Semester, Jadwal Belajar, Tagihan SPP |
-| **Siswa** | `siswa_dewi` | `siswa123` | Riwayat Kehadiran 97.5%, Rapor Kelas 7 |
+| **Siswa** | `siswa_dewi` | `siswa123` | Riwayat Kehadiran 97.8%, Rapor Kelas X-MIPA-2 |
+| **Siswa** | `siswa_budi` | `siswa123` | Tagihan menunggu verifikasi |
+| **Siswa** | `siswa_citra` | `siswa123` | Tagihan lunas |
 | **Orang Tua / Wali** | `wali_subagyo` | `wali123` | **Multi-Child Switcher** (Ahmad Dahlan & Dewi Sartika) |
 | **Orang Tua / Wali** | `wali_hartono` | `wali123` | Pemantauan Siswa Budi Santoso |
+
+---
+
+## 🧪 Demo End-to-End
+
+Studi kasus lengkap untuk seluruh modul tersedia di [docs/demo/STUDI-KASUS-END-TO-END.md](docs/demo/STUDI-KASUS-END-TO-END.md).
+
+```bash
+# dari apps/api
+pnpm exec wrangler d1 migrations apply school-erp-db --local
+
+# dari root
+pnpm dev          # terminal 1
+pnpm db:seed      # terminal 2
+pnpm demo:smoke   # verifikasi alur API end-to-end
+```
+
+Data demo memakai tahun ajaran **2026/2027 Semester Ganjil** dan dapat ditanam ulang secara idempoten.
 
 ---
 

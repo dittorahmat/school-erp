@@ -16,7 +16,7 @@ Cloudflare Workers kini mendukung fitur **Workers Static Assets** (`[assets] dir
 
 Kami memutuskan untuk menyatukan frontend SPA dan backend API ke dalam **satu Monolith Edge Worker tunggal** (`school-erp`):
 1. **URL Tunggal**: Seluruh antarmuka web dan endpoint `/api/*` disajikan dari domain yang sama (`school-erp.tech1solusi.workers.dev`).
-2. **Workers Static Assets Binding**: Konfigurasi `wrangler.toml` menggunakan `[assets] directory = "../web/dist"` dengan fallback client-side routing.
+2. **Workers Static Assets Binding**: Satu-satunya konfigurasi Worker adalah `apps/api/wrangler.toml`, dengan `[assets] directory = "../web/dist"` dan fallback client-side routing. `wrangler.toml` di root repo dihapus agar tidak ada konfigurasi kedua yang bisa menyimpang.
 3. **Zero CORS**: Cookie otentikasi `HttpOnly` berjalan first-party tanpa header CORS tambahan.
 4. **Driver Database Pure-JS**: Tidak boleh menggunakan library native C++ bindings Node.js (`better-sqlite3`, dsb). Seluruh interaksi database D1 wajib menggunakan runtime native D1 binding (`drizzle-orm/d1`) atau pure-JS mocks.
 
