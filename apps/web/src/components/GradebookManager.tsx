@@ -61,7 +61,7 @@ export function GradebookManager() {
   const [subjectId, setSubjectId] = useState("sub_mat");
   const [classroomId, setClassroomId] = useState("cls_10_mipa_1");
   const [scorebook, setScorebook] = useState<Scorebook | null>(null);
-  const [edits, setEdits] = useState<Record<string, number>>({});
+  const [edits, setEdits] = useState<Record<string, number | undefined>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -285,7 +285,10 @@ export function GradebookManager() {
                               onChange={(event) =>
                                 setEdits((current) => ({
                                   ...current,
-                                  [key]: Number(event.target.value),
+                                  [key]:
+                                    event.target.value === ""
+                                      ? undefined
+                                      : Number(event.target.value),
                                 }))
                               }
                               className="w-16 px-2 py-1 bg-[#f9fafb] rounded text-center text-xs text-[#111827] tabular-nums focus:outline-none focus:ring-1 focus:ring-[#b8336a]"

@@ -60,12 +60,12 @@ export const demoAcademicYears: AcademicYearRow[] = [
     createdAt,
   },
   {
-    id: "ay_2025_2026_even",
-    name: "2025/2026",
+    id: "ay_2026_2027_even",
+    name: "2026/2027",
     semester: "even",
     isActive: false,
-    startDate: "2026-01-05",
-    endDate: "2026-06-26",
+    startDate: "2027-01-05",
+    endDate: "2027-06-26",
     createdAt,
   },
 ];

@@ -92,7 +92,7 @@ async function canReadStudent(
 }
 
 // GET /api/gradebook/scores?subjectId=&classroomId=
-gradebookRouter.get("/scores", async (c) => {
+gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
   const db = createDb(c.env.DB);
   const subjectId = c.req.query("subjectId") ?? "sub_mat";
   const classroomId = c.req.query("classroomId") ?? "cls_10_mipa_1";

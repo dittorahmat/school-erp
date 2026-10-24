@@ -236,6 +236,15 @@ financeRouter.post("/upload-proof", async (c) => {
     return c.json({ error: "Berkas bukti bayar dan invoiceId wajib diisi" }, 400);
   }
 
+  const MAX_PROOF_BYTES = 5 * 1024 * 1024;
+  const allowedProofTypes = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+  if (file.size > MAX_PROOF_BYTES) {
+    return c.json({ error: "Ukuran bukti bayar maksimal 5MB" }, 400);
+  }
+  if (file.type && !allowedProofTypes.includes(file.type)) {
+    return c.json({ error: "Format bukti bayar harus PNG, JPG, WEBP, atau PDF" }, 400);
+  }
+
   const user = c.get("user");
   const db = createDb(c.env.DB);
 
@@ -283,6 +292,19 @@ financeRouter.post("/verify", requireRoles("admin"), async (c) => {
 
   const db = createDb(c.env.DB);
   try {
+    const existing = await db
+      .select({ id: invoices.id, status: invoices.status })
+      .from(invoices)
+      .where(eq(invoices.id, parsed.data.invoiceId))
+      .limit(1);
+
+    if (!existing[0]) {
+      return c.json({ error: "Tagihan tidak ditemukan" }, 404);
+    }
+    if (existing[0].status === "void") {
+      return c.json({ error: "Tagihan yang dibatalkan tidak dapat diverifikasi" }, 400);
+    }
+
     await db
       .update(invoices)
       .set({

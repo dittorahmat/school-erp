@@ -2,7 +2,7 @@
 
 Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik sampai pemantauan wali. Perkiraan durasi **25-30 menit** untuk empat peran.
 
-> Semua angka di bawah berasal dari data seed dan telah diverifikasi oleh `pnpm demo:smoke` (33 pemeriksaan).
+> Semua angka di bawah berasal dari data seed pada database yang baru di-seed dan telah diverifikasi oleh `pnpm demo:smoke`. Smoke test menulis data uji; reset database sebelum menelusuri babak demo (lihat §2).
 
 ---
 
@@ -46,7 +46,17 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
    ```bash
    pnpm demo:smoke
    ```
-   Hasil yang diharapkan: **33/33 pemeriksaan lulus**.
+   Hasil yang diharapkan: **semua pemeriksaan lulus**.
+
+   > Smoke test menulis data uji (invoice Desember, satu pinjaman, satu requisisi) dan **mengubah saldo stok**. Karena itu jalankan smoke test pada database sekali pakai, lalu reset sebelum menelusuri babak demo:
+   > ```bash
+   > # hentikan wrangler dev, dari apps/api
+   > Remove-Item -Recurse -Force .wrangler/state
+   > pnpm exec wrangler d1 migrations apply school-erp-db --local
+   > # jalankan dev server lagi, lalu
+   > pnpm db:seed
+   > ```
+   > Dengan begitu angka pada studi kasus ini (stok spidol 16, kolektibilitas 41,7%, Dewi tanpa tunggakan) tetap akurat.
 
 ---
 
@@ -54,7 +64,7 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 
 ### 1.1 Login dan verifikasi header
 - **Aksi:** login `admin` / `admin123`.
-- **Hasil:** header menampilkan `Tahun Ajaran 2026/2027 · Semester Ganjil · 13 Jul - 18 Des 2026`, tanggal hari ini, dan KPI dari D1.
+- **Hasil:** header menampilkan `Tahun Ajaran 2026/2027 · Semester Ganjil · 13 Jul 2026 - 18 Des 2026`, tanggal hari ini, dan KPI dari D1.
 - **Cek:** KPI "Total Siswa Aktif" = **12**, "Rombongan Belajar" = **6**.
 
 ### 1.2 Dashboard sadar hari sekolah
@@ -76,7 +86,7 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
 
 ### 1.5 Verifikasi bukti transfer
-- **Aksi:** cari invoice `INV-2026-10-003` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
+- **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
 - **Hasil:** status berubah menjadi **Lunas**, `paidAt` terisi, dan KPI verifikasi tertunda berkurang.
 - **Cek:** pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
 
@@ -132,7 +142,7 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 ### 3.3 Setujui requisisi
 - **Aksi:** tab **Habis Pakai** → setujui permintaan spidol.
 - **Hasil:** status requisisi **Disetujui** dan otomatis tercatat mutasi keluar.
-- **Cek:** saldo spidol turun dari **16** menjadi **15** kotak.
+- **Cek:** saldo spidol turun dari **16** menjadi **14** kotak (requisisi seed berjumlah 2 kotak).
 
 ### 3.4 Opname stok
 - **Aksi:** catat mutasi **Koreksi/Opname** untuk penghapus sesuai hitungan fisik, misalnya 3.
@@ -198,7 +208,7 @@ Yang diperiksa: health, login lima peran, seed idempoten, tahun ajaran, rombel, 
 
 **Checklist penerimaan**
 
-- [ ] Header menampilkan 2026/2027 dan rentang 13 Jul - 18 Des 2026.
+- [ ] Header menampilkan 2026/2027 dan rentang 13 Jul 2026 - 18 Des 2026.
 - [ ] Presensi tersimpan dan tidak duplikat.
 - [ ] Rekap Ahmad 42/2/1/0 (93.3%).
 - [ ] SPP dapat diterbitkan, diunggah, dan diverifikasi.
@@ -206,7 +216,7 @@ Yang diperiksa: health, login lima peran, seed idempoten, tahun ajaran, rombel, 
 - [ ] Portal wali menampilkan anak yang benar.
 - [ ] Pinjaman/requisisi mematuhi state machine.
 - [ ] `pnpm run check` hijau.
-- [ ] `pnpm demo:smoke` 33/33 lulus.
+- [ ] `pnpm demo:smoke` lulus seluruh pemeriksaan.
 
 ---
 

@@ -220,4 +220,119 @@ describe("StockLedger Deep Module", () => {
     expect(mockDb.update).toHaveBeenCalled();
     expect(mockDb.insert).toHaveBeenCalled(); // automatically recorded out-movement
   });
+
+  it("should keep the requisition pending when stock is insufficient", async () => {
+    const requisitionChain = {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([
+            {
+              id: "req_1",
+              itemId: "item_spidol",
+              quantity: 5,
+              reason: "Ujian Semester",
+              status: "pending",
+            },
+          ]),
+        }),
+      }),
+    };
+    const balanceChain = {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          orderBy: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([{ balanceAfter: 2 }]),
+          }),
+        }),
+      }),
+    };
+    const mockDb = {
+      select: vi.fn().mockReturnValueOnce(requisitionChain).mockReturnValueOnce(balanceChain),
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+
+    const ledger = new StockLedger(mockDb);
+
+    await expect(
+      ledger.fulfillRequisition({
+        requisitionId: "req_1",
+        approverId: "admin_tu",
+        decision: "approve",
+      })
+    ).rejects.toThrow("Stok tidak mencukupi untuk pengeluaran barang");
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
+
+  it("should reject a requisition without touching the ledger", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: "req_2",
+                itemId: "item_spidol",
+                quantity: 3,
+                reason: "Stok kelas menipis",
+                status: "pending",
+              },
+            ]),
+          }),
+        }),
+      }),
+      insert: vi.fn(),
+      update: vi.fn().mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue(true),
+        }),
+      }),
+    };
+
+    const ledger = new StockLedger(mockDb);
+    const result = await ledger.fulfillRequisition({
+      requisitionId: "req_2",
+      approverId: "admin_tu",
+      decision: "reject",
+    });
+
+    expect(result.status).toBe("rejected");
+    expect(mockDb.insert).not.toHaveBeenCalled();
+  });
+
+  it("should refuse to process an already handled requisition", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([
+              {
+                id: "req_3",
+                itemId: "item_spidol",
+                quantity: 1,
+                reason: "Kebutuhan papan tulis",
+                status: "approved",
+              },
+            ]),
+          }),
+        }),
+      }),
+      insert: vi.fn(),
+      update: vi.fn(),
+    };
+
+    const ledger = new StockLedger(mockDb);
+    await expect(
+      ledger.fulfillRequisition({
+        requisitionId: "req_3",
+        approverId: "admin_tu",
+        decision: "approve",
+      })
+    ).rejects.toThrow("Permintaan ATK sudah diproses sebelumnya");
+
+    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.update).not.toHaveBeenCalled();
+  });
 });

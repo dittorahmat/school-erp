@@ -31,8 +31,12 @@ Folder ini berisi studi kasus demo yang dapat dijalankan ulang untuk seluruh mod
 | Siswa | `siswa_dewi` | `siswa123` | Rapor dan presensi X-MIPA-2 |
 | Siswa | `siswa_budi` | `siswa123` | Tagihan menunggu verifikasi |
 | Siswa | `siswa_citra` | `siswa123` | Tagihan lunas |
+| Siswa | `siswa_eka` | `siswa123` | Nilai di bawah KKM |
+| Siswa | `siswa_fajar` | `siswa123` | Presensi dan nilai stabil |
 | Wali multi-anak | `wali_subagyo` | `wali123` | Ahmad Dahlan dan Dewi Sartika |
 | Wali tunggal | `wali_hartono` | `wali123` | Budi Santoso |
+
+Kesebelas akun di atas adalah akun login yang dipakai demo. Dataset seed total berisi 17 user, karena 12 siswa perlu ada sebagai data rombel walau tidak semuanya dipakai sebagai akun demo.
 
 ## Menjalankan lokal
 

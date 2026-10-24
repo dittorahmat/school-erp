@@ -49,6 +49,22 @@ try {
   const health = await request("/api/health");
   check("health endpoint", health.ok && health.json?.status === "ok");
 
+  // Bootstrap admin token: on an empty migrated DB the API only accepts the
+  // bootstrap account while no admin row exists, exactly so the seeder can run.
+  const bootstrapAdmin = await login("admin", "admin123");
+  const firstSeed = await request("/api/admin/seed-demo", { token: bootstrapAdmin, method: "POST" });
+  const secondSeed = await request("/api/admin/seed-demo", { token: bootstrapAdmin, method: "POST" });
+  check(
+    "seeder idempoten",
+    firstSeed.ok &&
+      secondSeed.ok &&
+      firstSeed.json?.counts?.users >= 17 &&
+      JSON.stringify(firstSeed.json?.counts) === JSON.stringify(secondSeed.json?.counts),
+    `users=${secondSeed.json?.counts?.users}`
+  );
+
+  // Re-login after seeding so every later assertion runs against DB identities,
+  // never against the bootstrap fallback.
   const admin = await login("admin", "admin123");
   const teacher = await login("guru_budi", "guru123");
   const student = await login("siswa_ahmad", "siswa123");
@@ -56,8 +72,12 @@ try {
   const guardianSingle = await login("wali_hartono", "wali123");
   check("login lima peran", Boolean(admin && teacher && student && guardian && guardianSingle));
 
-  const seed = await request("/api/admin/seed-demo", { token: admin, method: "POST" });
-  check("seeder idempoten", seed.ok && seed.json?.counts?.users >= 17, `users=${seed.json?.counts?.users}`);
+  const identity = await request("/api/auth/me", { token: student });
+  check(
+    "login memakai identitas database",
+    identity.json?.user?.sub === "usr_student_1",
+    identity.json?.user?.sub
+  );
 
   const year = await request("/api/academic/years?active=true", { token: admin });
   check(

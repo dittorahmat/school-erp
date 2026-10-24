@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { z } from "zod";
 import { Bindings } from "../index";
 import { authMiddleware, requireRoles } from "../auth/middleware";
 import {
@@ -17,25 +16,11 @@ import {
   users,
 } from "@school-erp/db";
 import { summarizeAttendance } from "./summary";
+import { sessionInputSchema } from "./schema";
 
 const attendanceRouter = new Hono<{ Bindings: Bindings }>();
 
 attendanceRouter.use("*", authMiddleware());
-
-const sessionInputSchema = z.object({
-  classroomId: z.string().min(1),
-  subjectId: z.string().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  records: z
-    .array(
-      z.object({
-        studentId: z.string().min(1),
-        status: z.enum(["present", "sick", "permit", "absent"]),
-        remarks: z.string().optional(),
-      })
-    )
-    .min(1),
-});
 
 async function canReadStudent(
   db: ReturnType<typeof createDb>,
@@ -86,7 +71,7 @@ attendanceRouter.get("/summary", async (c) => {
 });
 
 // GET /api/attendance/sessions?classroomId=&date=
-attendanceRouter.get("/sessions", async (c) => {
+attendanceRouter.get("/sessions", requireRoles("admin", "teacher"), async (c) => {
   const classroomId = c.req.query("classroomId");
   const date = c.req.query("date");
   if (!classroomId || !date) {

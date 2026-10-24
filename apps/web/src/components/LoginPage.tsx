@@ -128,6 +128,27 @@ export function LoginPage() {
               </button>
               <button
                 type="button"
+                onClick={() => handleQuickSelect("siswa_citra", "siswa123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Siswa (siswa_citra)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("siswa_eka", "siswa123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Siswa (siswa_eka)
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickSelect("siswa_fajar", "siswa123")}
+                className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
+              >
+                &bull; Siswa (siswa_fajar)
+              </button>
+              <button
+                type="button"
                 onClick={() => handleQuickSelect("wali_subagyo", "wali123")}
                 className="text-left px-2 py-1 rounded hover:bg-white text-slate-700 hover:text-[#b8336a] transition"
               >

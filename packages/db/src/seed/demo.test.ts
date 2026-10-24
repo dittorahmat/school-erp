@@ -29,6 +29,12 @@ describe("Demo dataset integrity", () => {
   it("has exactly one active academic year", () => {
     expect(demoAcademicYears.filter((year) => year.isActive)).toHaveLength(1);
     expect(demoAcademicYears.find((year) => year.isActive)?.name).toBe("2026/2027");
+
+    const history = demoAcademicYears.find((year) => !year.isActive);
+    expect(history?.name).toBe("2026/2027");
+    expect(history?.semester).toBe("even");
+    expect(history?.startDate).toBe("2027-01-05");
+    expect(history?.endDate).toBe("2027-06-26");
   });
 
   it("keeps enrollments and guardian links referentially valid", () => {

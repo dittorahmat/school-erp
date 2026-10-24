@@ -203,7 +203,7 @@ academicRouter.get("/subjects", async (c) => {
 });
 
 // GET /api/academic/classrooms/:id/students
-academicRouter.get("/classrooms/:id/students", async (c) => {
+academicRouter.get("/classrooms/:id/students", requireRoles("admin", "teacher"), async (c) => {
   const classroomId = c.req.param("id");
   const db = createDb(c.env.DB);
 

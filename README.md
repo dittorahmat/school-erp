@@ -63,7 +63,7 @@ pnpm exec wrangler d1 migrations apply school-erp-db --local
 # dari root
 pnpm dev          # terminal 1
 pnpm db:seed      # terminal 2
-pnpm demo:smoke   # verifikasi 33 pemeriksaan
+pnpm demo:smoke   # verifikasi alur API end-to-end
 ```
 
 Data demo memakai tahun ajaran **2026/2027 Semester Ganjil** dan dapat ditanam ulang secara idempoten.

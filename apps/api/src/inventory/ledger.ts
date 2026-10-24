@@ -103,14 +103,8 @@ export class StockLedger {
     const isApprove = input.decision === "approve";
     const nextStatus = isApprove ? ("approved" as const) : ("rejected" as const);
 
-    await this.db
-      .update(inventoryRequisitions)
-      .set({
-        status: nextStatus,
-        approverId: input.approverId,
-      })
-      .where(eq(inventoryRequisitions.id, input.requisitionId));
-
+    // Deduct stock first: if the ledger rejects the movement the requisition
+    // must stay pending, otherwise it is approved with no matching outflow.
     if (isApprove) {
       await this.recordMovement({
         itemId: req.itemId,
@@ -120,6 +114,14 @@ export class StockLedger {
         referenceUser: input.approverId,
       });
     }
+
+    await this.db
+      .update(inventoryRequisitions)
+      .set({
+        status: nextStatus,
+        approverId: input.approverId,
+      })
+      .where(eq(inventoryRequisitions.id, input.requisitionId));
 
     return { status: nextStatus, requisitionId: req.id };
   }
