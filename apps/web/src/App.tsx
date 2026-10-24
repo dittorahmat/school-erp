@@ -45,9 +45,27 @@ interface ActiveYear {
   endDate: string | null;
 }
 
+interface DashboardSummary {
+  students: number;
+  classrooms: number;
+  attendance: { date: string; present: number; total: number; percentage: number };
+  finance: { month: string; paidAmount: number; totalAmount: number; collectionRate: number };
+  pendingVerifications: number;
+}
+
+const formatMonth = (value?: string | null) => {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  }).format(new Date(`${value}-01T00:00:00+07:00`));
+};
+
 function MainDashboard() {
   const { user, logout } = useAuth();
   const [activeYear, setActiveYear] = useState<ActiveYear | null>(null);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [activeTab, setActiveTab] = useState<
     "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent" | "inventory"
   >("overview");
@@ -57,6 +75,13 @@ function MainDashboard() {
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (json?.data) setActiveYear(json.data);
+      })
+      .catch(() => undefined);
+
+    fetch("/api/dashboard/summary")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (json?.data) setSummary(json.data);
       })
       .catch(() => undefined);
   }, []);
@@ -184,28 +209,38 @@ function MainDashboard() {
                 <div>
                   <span className="text-xs text-[#5f6672]">Total Siswa Aktif</span>
                   <p className="text-2xl font-bold text-[#111827] mt-1 tabular-nums">
-                    480
+                    {summary?.students ?? "—"}
                   </p>
-                  <p className="text-[11px] text-[#5f6672] mt-0.5">15 Rombongan Belajar</p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">
+                    {summary?.classrooms ?? 0} Rombongan Belajar
+                  </p>
                 </div>
                 <div>
-                  <span className="text-xs text-[#5f6672]">Presensi Hari Ini</span>
+                  <span className="text-xs text-[#5f6672]">
+                    Presensi per {formatShortDate(summary?.attendance.date)}
+                  </span>
                   <p className="text-2xl font-bold text-[#247b50] mt-1 tabular-nums">
-                    96.4%
+                    {summary ? `${summary.attendance.percentage}%` : "—"}
                   </p>
-                  <p className="text-[11px] text-[#5f6672] mt-0.5">463 dari 480 hadir</p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">
+                    {summary
+                      ? `${summary.attendance.present} dari ${summary.attendance.total} hadir`
+                      : "Memuat data presensi"}
+                  </p>
                 </div>
                 <div>
                   <span className="text-xs text-[#5f6672]">Kolektibilitas SPP</span>
                   <p className="text-2xl font-bold text-[#111827] mt-1 tabular-nums">
-                    84.2%
+                    {summary ? `${summary.finance.collectionRate}%` : "—"}
                   </p>
-                  <p className="text-[11px] text-[#5f6672] mt-0.5">Periode Oktober 2026</p>
+                  <p className="text-[11px] text-[#5f6672] mt-0.5">
+                    Periode {formatMonth(summary?.finance.month)}
+                  </p>
                 </div>
                 <div>
                   <span className="text-xs text-[#5f6672]">Verifikasi Tertunda</span>
                   <p className="text-2xl font-bold text-[#b8336a] mt-1 tabular-nums">
-                    8
+                    {summary?.pendingVerifications ?? "—"}
                   </p>
                   <p className="text-[11px] text-[#5f6672] mt-0.5">Bukti transfer di R2</p>
                 </div>
