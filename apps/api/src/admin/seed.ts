@@ -44,12 +44,35 @@ import {
 type Db = ReturnType<typeof createDb>;
 type PasswordHasher = (password: string) => Promise<string>;
 
+/**
+ * D1 rejects a statement with more than 100 bound parameters. Drizzle adds none
+ * for a plain insert, so a chunk is safe while rows * columns stays under the cap.
+ * `headroom` leaves room for any future conflict clause.
+ */
+export const D1_MAX_PARAMETERS = 100;
+export const D1_PARAMETER_HEADROOM = 10;
+
+export function chunkRows<T>(
+  rows: T[],
+  columnCount: number,
+  maxParameters = D1_MAX_PARAMETERS,
+  headroom = D1_PARAMETER_HEADROOM
+): T[][] {
+  if (rows.length === 0) return [];
+  const width = Math.max(1, columnCount);
+  const size = Math.max(1, Math.floor((maxParameters - headroom) / width));
+
+  const chunks: T[][] = [];
+  for (let index = 0; index < rows.length; index += size) {
+    chunks.push(rows.slice(index, index + size));
+  }
+  return chunks;
+}
+
 async function insertChunked(db: Db, table: any, rows: any[]) {
   if (rows.length === 0) return;
   const columnCount = Object.keys(rows[0]).length || 1;
-  const chunkSize = Math.max(1, Math.floor(90 / columnCount));
-  for (let index = 0; index < rows.length; index += chunkSize) {
-    const chunk = rows.slice(index, index + chunkSize);
+  for (const chunk of chunkRows(rows, columnCount)) {
     await db.insert(table).values(chunk).onConflictDoNothing();
   }
 }

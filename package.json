@@ -7,12 +7,16 @@
     "build": "pnpm --recursive run build",
     "test": "pnpm --recursive run test",
     "lint:ui": "node .agents/skills/design-taste-frontend/scripts/lint.mjs apps/web/src",
+    "lint:tokens": "node scripts/lint-tokens.mjs apps/web/src apps/web/index.html",
     "check": "node scripts/check.mjs",
     "deploy": "pnpm --filter @school-erp/web run build && pnpm --filter @school-erp/api exec wrangler deploy",
     "db:generate": "pnpm --filter @school-erp/db run db:generate",
     "db:migrate": "pnpm --filter @school-erp/db run db:migrate",
     "db:seed": "node scripts/seed-demo.mjs",
-    "demo:smoke": "node scripts/demo-smoke.mjs"
+    "demo:smoke": "node scripts/demo-smoke.mjs",
+    "check:docs": "node --no-warnings scripts/check-docs.mjs",
+    "probe": "node scripts/probe.mjs",
+    "verify:prod": "node scripts/verify-prod.mjs"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
