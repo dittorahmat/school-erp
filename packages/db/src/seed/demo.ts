@@ -422,9 +422,10 @@ export const demoAttendanceRecords: AttendanceRecordRow[] = attendanceClasses.fl
               : status === "absent"
                 ? "Belum ada konfirmasi"
                 : null;
+        const sessionId = `att_sess_${classroom.classroomId}_${date}`;
         return {
-          id: `att_rec_${studentId}_${date}`,
-          sessionId: `att_sess_${classroom.classroomId}_${date}`,
+          id: `att_rec_${sessionId}_${studentId}`,
+          sessionId,
           studentId,
           status,
           remarks,
