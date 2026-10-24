@@ -75,6 +75,9 @@ pnpm run deploy
 
 # 4. Tanam data demo (aditif, idempoten)
 node scripts/seed-demo.mjs --base https://school-erp.tech1solusi.workers.dev
+
+# 5. Verifikasi produksi (read-only, tidak menulis data)
+pnpm verify:prod
 ```
 
 Sebelum migrasi produksi, ekspor D1 sebagai cadangan:
@@ -86,7 +89,16 @@ pnpm exec wrangler d1 export school-erp-db --remote --output backup-pre-demo.sql
 
 Rollback aman: kembalikan Worker ke versi sebelumnya dengan `pnpm exec wrangler rollback`, lalu hapus baris demo berdasarkan ID tetap (`usr_*`, `cls_*`, `INV-*`) bila diperlukan. Migrasi `0001` hanya menambah tabel/kolom, tidak menghapus data.
 
-Smoke test **tidak** dijalankan ke produksi secara default karena membuat data uji baru. Untuk produksi, verifikasi manual melalui studi kasus.
+Smoke test **tidak** dijalankan ke produksi secara default karena membuat data uji baru. Untuk produksi, gunakan `pnpm verify:prod` yang hanya membaca data, lalu telusuri studi kasus secara manual.
+
+`pnpm run check` menegakkan guardrail berikut, dan CI menjalankan perintah yang sama pada setiap PR:
+
+| Guardrail | Menangkap |
+| :--- | :--- |
+| `tsc` + Vitest | tipe, unit domain, matriks otorisasi rute (`authz.test.ts`) |
+| `lint:ui` | pola desain terlarang |
+| `lint:tokens` | warna hex di luar `index.css` `@theme` |
+| `check:docs` | ID yang dikutip dokumen demo tetapi tidak ada di dataset seed |
 
 ## Reset data lokal
 
