@@ -8,7 +8,7 @@ export const ALL = ["admin", "teacher", "student", "guardian"] as const;
 export type Role = (typeof ALL)[number];
 
 export interface RouteSpec {
-  method: "GET" | "POST" | "PATCH";
+  method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
   allow: readonly Role[];
 }
@@ -22,6 +22,10 @@ export const routes: RouteSpec[] = [
   { method: "GET", path: "/api/academic/classrooms/cls_test/students", allow: ["admin", "teacher"] },
   { method: "POST", path: "/api/academic/classrooms", allow: ["admin"] },
   { method: "POST", path: "/api/academic/years", allow: ["admin"] },
+  { method: "GET", path: "/api/academic/students", allow: ["admin", "teacher"] },
+  { method: "POST", path: "/api/academic/students", allow: ["admin"] },
+  { method: "PATCH", path: "/api/academic/students/usr_student_test", allow: ["admin"] },
+  { method: "DELETE", path: "/api/academic/students/usr_student_test", allow: ["admin"] },
 
   { method: "GET", path: "/api/attendance/summary", allow: ALL },
   { method: "GET", path: "/api/attendance/sessions?classroomId=cls_test&date=2026-10-23", allow: ["admin", "teacher"] },
