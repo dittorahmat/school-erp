@@ -9,6 +9,8 @@ import { parentRouter } from "./parent/routes";
 import { inventoryRouter } from "./inventory/routes";
 import { adminRouter } from "./admin/routes";
 import { dashboardRouter } from "./dashboard/routes";
+import { staffRouter } from "./academic/staff";
+import { guardianRouter } from "./guardian/routes";
 
 export type Bindings = {
   DB: D1Database;
@@ -47,6 +49,8 @@ app.route("/api/parent", parentRouter);
 app.route("/api/inventory", inventoryRouter);
 app.route("/api/admin", adminRouter);
 app.route("/api/dashboard", dashboardRouter);
+app.route("/api/staff", staffRouter);
+app.route("/api/guardians", guardianRouter);
 
 app.get("/api/health", (c) => {
   return c.json({

@@ -36,6 +36,48 @@ async function tokenFor(role: Role) {
 
 describe("route authorization matrix", () => {
   it("covers every route the API exposes", () => {
+    const normalize = (path: string) =>
+      path
+        .replace(/:id\b/g, "[^/]+")
+        .replace(/:studentId\b/g, "[^/]+");
+
+    // Public or infrastructure routes that do not require authz matrix entry
+    const publicExclusions = [
+      "POST /api/auth/login",
+      "POST /api/auth/logout",
+    ];
+
+    // Collect distinct registered route signatures
+    const appRouteSet = new Set<string>();
+    for (const r of app.routes) {
+      if (
+        r.path.startsWith("/api/") &&
+        r.path !== "/api/*" &&
+        r.path !== "/api/health" &&
+        r.method !== "ALL" &&
+        !publicExclusions.includes(`${r.method} ${r.path}`)
+      ) {
+        appRouteSet.add(`${r.method} ${r.path}`);
+      }
+    }
+
+    const missingInTable: string[] = [];
+    for (const routeSig of appRouteSet) {
+      const [method, path] = routeSig.split(" ");
+      const regRegex = new RegExp(`^${normalize(path)}(\\?.*)?$`);
+      const matched = routes.some(
+        (tableRoute) =>
+          tableRoute.method === method && regRegex.test(tableRoute.path)
+      );
+      if (!matched) {
+        missingInTable.push(routeSig);
+      }
+    }
+
+    expect(
+      missingInTable,
+      "Routes defined on Hono app but missing from testing/routes.ts"
+    ).toEqual([]);
     expect(routes.length).toBeGreaterThan(30);
   });
 

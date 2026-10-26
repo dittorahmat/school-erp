@@ -12,6 +12,8 @@ import {
   users,
   desc,
   eq,
+  ne,
+  and,
   demoSeedCategories,
   demoSeedLocations,
   demoSeedInventoryItems,
@@ -35,10 +37,21 @@ const createCategorySchema = z.object({
   description: z.string().optional(),
 });
 
+const updateCategorySchema = z.object({
+  name: z.string().min(1, "Nama kategori wajib diisi").optional(),
+  description: z.string().nullable().optional(),
+});
+
 const createLocationSchema = z.object({
   name: z.string().min(1, "Nama lokasi wajib diisi"),
   code: z.string().min(1, "Kode lokasi wajib diisi"),
   description: z.string().optional(),
+});
+
+const updateLocationSchema = z.object({
+  name: z.string().min(1, "Nama lokasi wajib diisi").optional(),
+  code: z.string().min(1, "Kode lokasi wajib diisi").optional(),
+  description: z.string().nullable().optional(),
 });
 
 const createItemSchema = z.object({
@@ -49,6 +62,14 @@ const createItemSchema = z.object({
   unit: z.string().min(1, "Satuan unit wajib diisi"),
   minStockAlert: z.number().int().min(0).default(0),
   description: z.string().optional(),
+});
+
+const updateItemSchema = z.object({
+  name: z.string().min(1, "Nama barang tidak boleh kosong").optional(),
+  code: z.string().min(1, "Kode barang tidak boleh kosong").optional(),
+  categoryId: z.string().min(1, "Kategori wajib dipilih").optional(),
+  minStockAlert: z.number().int().min(0).optional(),
+  description: z.string().nullable().optional(),
 });
 
 const createAssetUnitSchema = z.object({
@@ -64,7 +85,8 @@ const updateAssetUnitSchema = z.object({
   locationId: z.string().optional(),
   status: z.enum(["available", "loaned", "maintenance", "disposed"]).optional(),
   condition: z.enum(["good", "light_damage", "heavy_damage", "lost"]).optional(),
-  notes: z.string().optional(),
+  serialNumber: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
 
 const createLoanSchema = z.object({
@@ -157,6 +179,98 @@ inventoryRouter.post("/categories", requireRoles("admin"), async (c) => {
   }
 });
 
+inventoryRouter.patch("/categories/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const parsed = updateCategorySchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid category update payload", details: parsed.error }, 400);
+  }
+
+  const data = parsed.data;
+  if (data.name === undefined && data.description === undefined) {
+    return c.json({ error: "Tidak ada data kategori yang diperbarui" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryCategories)
+      .where(eq(inventoryCategories.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Kategori tidak ditemukan" }, 404);
+    }
+
+    if (data.name && data.name !== existing[0].name) {
+      const dup = await db
+        .select({ id: inventoryCategories.id })
+        .from(inventoryCategories)
+        .where(eq(inventoryCategories.name, data.name))
+        .limit(1);
+      if (dup.length > 0) {
+        return c.json({ error: "Nama kategori sudah digunakan" }, 400);
+      }
+    }
+
+    const updates: Partial<{ name: string; description: string | null }> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.description !== undefined) updates.description = data.description;
+
+    await db
+      .update(inventoryCategories)
+      .set(updates)
+      .where(eq(inventoryCategories.id, id));
+
+    return c.json({
+      message: "Kategori berhasil diperbarui",
+      category: {
+        ...existing[0],
+        ...updates,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui kategori", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.delete("/categories/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryCategories)
+      .where(eq(inventoryCategories.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Kategori tidak ditemukan" }, 404);
+    }
+
+    const items = await db
+      .select({ id: inventoryItems.id })
+      .from(inventoryItems)
+      .where(eq(inventoryItems.categoryId, id))
+      .limit(1);
+
+    if (items.length > 0) {
+      return c.json(
+        { error: "Kategori tidak dapat dihapus karena masih digunakan oleh barang inventaris" },
+        400
+      );
+    }
+
+    await db.delete(inventoryCategories).where(eq(inventoryCategories.id, id));
+    return c.json({ message: "Kategori berhasil dihapus", id });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus kategori", message: String(err) }, 500);
+  }
+});
+
 // Locations
 inventoryRouter.get("/locations", async (c) => {
   const db = createDb(c.env.DB);
@@ -196,6 +310,110 @@ inventoryRouter.post("/locations", requireRoles("admin"), async (c) => {
     return c.json({ message: "Lokasi berhasil ditambahkan", location }, 201);
   } catch (err: unknown) {
     return c.json({ error: "Gagal menyimpan lokasi", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.patch("/locations/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const parsed = updateLocationSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid location update payload", details: parsed.error }, 400);
+  }
+
+  const data = parsed.data;
+  if (data.name === undefined && data.code === undefined && data.description === undefined) {
+    return c.json({ error: "Tidak ada data lokasi yang diperbarui" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryLocations)
+      .where(eq(inventoryLocations.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Lokasi tidak ditemukan" }, 404);
+    }
+
+    if (data.code && data.code !== existing[0].code) {
+      const dup = await db
+        .select({ id: inventoryLocations.id })
+        .from(inventoryLocations)
+        .where(eq(inventoryLocations.code, data.code))
+        .limit(1);
+      if (dup.length > 0) {
+        return c.json({ error: "Kode lokasi sudah digunakan" }, 400);
+      }
+    }
+
+    if (data.name && data.name !== existing[0].name) {
+      const dupName = await db
+        .select({ id: inventoryLocations.id })
+        .from(inventoryLocations)
+        .where(eq(inventoryLocations.name, data.name))
+        .limit(1);
+      if (dupName.length > 0) {
+        return c.json({ error: "Nama lokasi sudah digunakan" }, 400);
+      }
+    }
+
+    const updates: Partial<{ name: string; code: string; description: string | null }> = {};
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.code !== undefined) updates.code = data.code;
+    if (data.description !== undefined) updates.description = data.description;
+
+    await db
+      .update(inventoryLocations)
+      .set(updates)
+      .where(eq(inventoryLocations.id, id));
+
+    return c.json({
+      message: "Lokasi berhasil diperbarui",
+      location: {
+        ...existing[0],
+        ...updates,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui lokasi", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.delete("/locations/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryLocations)
+      .where(eq(inventoryLocations.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Lokasi tidak ditemukan" }, 404);
+    }
+
+    const units = await db
+      .select({ id: inventoryAssetUnits.id })
+      .from(inventoryAssetUnits)
+      .where(eq(inventoryAssetUnits.locationId, id))
+      .limit(1);
+
+    if (units.length > 0) {
+      return c.json(
+        { error: "Lokasi tidak dapat dihapus karena masih ada unit aset di lokasi ini" },
+        400
+      );
+    }
+
+    await db.delete(inventoryLocations).where(eq(inventoryLocations.id, id));
+    return c.json({ message: "Lokasi berhasil dihapus", id });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus lokasi", message: String(err) }, 500);
   }
 });
 
@@ -275,6 +493,138 @@ inventoryRouter.post("/items", requireRoles("admin"), async (c) => {
     return c.json({ message: "Barang berhasil ditambahkan ke katalog", item }, 201);
   } catch (err: unknown) {
     return c.json({ error: "Gagal menyimpan barang ke katalog", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.patch("/items/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const parsed = updateItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid item update payload", details: parsed.error }, 400);
+  }
+
+  const data = parsed.data;
+  if (
+    data.name === undefined &&
+    data.code === undefined &&
+    data.categoryId === undefined &&
+    data.minStockAlert === undefined &&
+    data.description === undefined
+  ) {
+    return c.json({ error: "Tidak ada data barang yang diperbarui" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Barang tidak ditemukan" }, 404);
+    }
+
+    if (data.code && data.code !== existing[0].code) {
+      const dup = await db
+        .select({ id: inventoryItems.id })
+        .from(inventoryItems)
+        .where(eq(inventoryItems.code, data.code))
+        .limit(1);
+      if (dup.length > 0) {
+        return c.json({ error: "Kode barang sudah digunakan" }, 400);
+      }
+    }
+
+    if (data.categoryId && data.categoryId !== existing[0].categoryId) {
+      const cat = await db
+        .select({ id: inventoryCategories.id })
+        .from(inventoryCategories)
+        .where(eq(inventoryCategories.id, data.categoryId))
+        .limit(1);
+      if (cat.length === 0) {
+        return c.json({ error: "Kategori tidak ditemukan" }, 400);
+      }
+    }
+
+    const updates: Partial<{
+      name: string;
+      code: string;
+      categoryId: string;
+      minStockAlert: number;
+      description: string | null;
+    }> = {};
+
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.code !== undefined) updates.code = data.code;
+    if (data.categoryId !== undefined) updates.categoryId = data.categoryId;
+    if (data.minStockAlert !== undefined) updates.minStockAlert = data.minStockAlert;
+    if (data.description !== undefined) updates.description = data.description;
+
+    await db
+      .update(inventoryItems)
+      .set(updates)
+      .where(eq(inventoryItems.id, id));
+
+    return c.json({
+      message: "Barang berhasil diperbarui",
+      item: {
+        ...existing[0],
+        ...updates,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui barang", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.delete("/items/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryItems)
+      .where(eq(inventoryItems.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Barang tidak ditemukan" }, 404);
+    }
+
+    const units = await db
+      .select({ id: inventoryAssetUnits.id })
+      .from(inventoryAssetUnits)
+      .where(eq(inventoryAssetUnits.itemId, id))
+      .limit(1);
+
+    if (units.length > 0) {
+      return c.json(
+        { error: "Barang tidak dapat dihapus karena masih memiliki unit fisik aset terdaftar" },
+        400
+      );
+    }
+
+    const movements = await db
+      .select({ id: inventoryStockMovements.id })
+      .from(inventoryStockMovements)
+      .where(eq(inventoryStockMovements.itemId, id))
+      .limit(1);
+
+    if (movements.length > 0) {
+      return c.json(
+        { error: "Barang tidak dapat dihapus karena memiliki riwayat mutasi persediaan" },
+        400
+      );
+    }
+
+    await db.delete(inventoryItems).where(eq(inventoryItems.id, id));
+    return c.json({ message: "Barang berhasil dihapus", id });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus barang", message: String(err) }, 500);
   }
 });
 
@@ -377,21 +727,96 @@ inventoryRouter.patch("/asset-units/:id", requireRoles("admin"), async (c) => {
   }
 
   const data = parsed.data;
+  if (
+    data.locationId === undefined &&
+    data.status === undefined &&
+    data.condition === undefined &&
+    data.serialNumber === undefined &&
+    data.notes === undefined
+  ) {
+    return c.json({ error: "Tidak ada data unit aset yang diperbarui" }, 400);
+  }
+
   const db = createDb(c.env.DB);
   try {
+    const existing = await db
+      .select()
+      .from(inventoryAssetUnits)
+      .where(eq(inventoryAssetUnits.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Unit aset tidak ditemukan" }, 404);
+    }
+
+    if (data.locationId && data.locationId !== existing[0].locationId) {
+      const loc = await db
+        .select({ id: inventoryLocations.id })
+        .from(inventoryLocations)
+        .where(eq(inventoryLocations.id, data.locationId))
+        .limit(1);
+      if (loc.length === 0) {
+        return c.json({ error: "Lokasi tidak ditemukan" }, 400);
+      }
+    }
+
+    const updates: Partial<{
+      locationId: string;
+      status: "available" | "loaned" | "maintenance" | "disposed";
+      condition: "good" | "light_damage" | "heavy_damage" | "lost";
+      serialNumber: string | null;
+      notes: string | null;
+    }> = {};
+
+    if (data.locationId !== undefined) updates.locationId = data.locationId;
+    if (data.status !== undefined) updates.status = data.status;
+    if (data.condition !== undefined) updates.condition = data.condition;
+    if (data.serialNumber !== undefined) updates.serialNumber = data.serialNumber;
+    if (data.notes !== undefined) updates.notes = data.notes;
+
     await db
       .update(inventoryAssetUnits)
-      .set({
-        ...(data.locationId && { locationId: data.locationId }),
-        ...(data.status && { status: data.status }),
-        ...(data.condition && { condition: data.condition }),
-        ...(data.notes !== undefined && { notes: data.notes }),
-      })
+      .set(updates)
       .where(eq(inventoryAssetUnits.id, id));
 
-    return c.json({ message: "Unit aset berhasil diperbarui" });
+    return c.json({
+      message: "Unit aset berhasil diperbarui",
+      unit: {
+        ...existing[0],
+        ...updates,
+      },
+    });
   } catch (err: unknown) {
     return c.json({ error: "Gagal memperbarui unit aset", message: String(err) }, 500);
+  }
+});
+
+inventoryRouter.delete("/asset-units/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(inventoryAssetUnits)
+      .where(eq(inventoryAssetUnits.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Unit aset tidak ditemukan" }, 404);
+    }
+
+    if (existing[0].status === "loaned") {
+      return c.json(
+        { error: "Unit aset tidak dapat dihapus karena saat ini sedang dipinjam (status: loaned)" },
+        400
+      );
+    }
+
+    await db.delete(inventoryAssetUnits).where(eq(inventoryAssetUnits.id, id));
+    return c.json({ message: "Unit aset berhasil dihapus", id });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus unit aset", message: String(err) }, 500);
   }
 });
 

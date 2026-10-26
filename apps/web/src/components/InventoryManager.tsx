@@ -16,7 +16,11 @@ import {
   Check,
   X,
   FileText,
+  Edit2,
+  Trash2,
+  FolderTree,
 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 interface Category {
   id: string;
@@ -103,7 +107,55 @@ interface Requisition {
 }
 
 export function InventoryManager() {
-  const [activeTab, setActiveTab] = useState<"catalog" | "assets" | "loans" | "consumables">("catalog");
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [activeTab, setActiveTab] = useState<"catalog" | "assets" | "loans" | "consumables" | "categories_locations">("catalog");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Edit / Delete Item State
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [editItemName, setEditItemName] = useState("");
+  const [editItemCode, setEditItemCode] = useState("");
+  const [editItemCategoryId, setEditItemCategoryId] = useState("");
+  const [editItemMinStockAlert, setEditItemMinStockAlert] = useState(0);
+  const [editItemDescription, setEditItemDescription] = useState("");
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null);
+
+  // Edit / Delete Asset Unit State
+  const [editingUnit, setEditingUnit] = useState<AssetUnit | null>(null);
+  const [editUnitLocationId, setEditUnitLocationId] = useState("");
+  const [editUnitStatus, setEditUnitStatus] = useState<"available" | "loaned" | "maintenance" | "disposed">("available");
+  const [editUnitCondition, setEditUnitCondition] = useState<"good" | "light_damage" | "heavy_damage" | "lost">("good");
+  const [editUnitSerialNumber, setEditUnitSerialNumber] = useState("");
+  const [editUnitNotes, setEditUnitNotes] = useState("");
+  const [deletingUnit, setDeletingUnit] = useState<AssetUnit | null>(null);
+
+  // Category & Location CRUD State
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryDesc, setCategoryDesc] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryDesc, setEditCategoryDesc] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+
+  const [showAddLocationModal, setShowAddLocationModal] = useState(false);
+  const [locationName, setLocationName] = useState("");
+  const [locationCode, setLocationCode] = useState("");
+  const [locationDesc, setLocationDesc] = useState("");
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [editLocationName, setEditLocationName] = useState("");
+  const [editLocationCode, setEditLocationCode] = useState("");
+  const [editLocationDesc, setEditLocationDesc] = useState("");
+  const [deletingLocation, setDeletingLocation] = useState<Location | null>(null);
+
+  // Requisition Modal State
+  const [showRequisitionModal, setShowRequisitionModal] = useState(false);
+  const [reqItemId, setReqItemId] = useState("");
+  const [reqQty, setReqQty] = useState(1);
+  const [reqReason, setReqReason] = useState("");
+  const [reqSubmitting, setReqSubmitting] = useState(false);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -122,11 +174,6 @@ export function InventoryManager() {
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [showNewLoanModal, setShowNewLoanModal] = useState(false);
   const [showNewStockModal, setShowNewStockModal] = useState(false);
-  const [showRequisitionModal, setShowRequisitionModal] = useState(false);
-  const [reqItemId, setReqItemId] = useState("");
-  const [reqQty, setReqQty] = useState(1);
-  const [reqReason, setReqReason] = useState("");
-  const [reqSubmitting, setReqSubmitting] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState<Loan | null>(null);
   const [selectedUnitForLabel, setSelectedUnitForLabel] = useState<AssetUnit | null>(null);
 
@@ -240,10 +287,269 @@ export function InventoryManager() {
         setName("");
         setCode("");
         setDescription("");
+        setFeedback({ type: "success", text: "Barang berhasil ditambahkan ke katalog." });
         loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menambahkan barang." });
       }
     } catch {
-      // noop
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menyimpan barang." });
+    }
+  };
+
+  const handleEditItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    try {
+      const res = await fetch(`/api/inventory/items/${editingItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editItemName,
+          code: editItemCode,
+          categoryId: editItemCategoryId,
+          minStockAlert: Number(editItemMinStockAlert),
+          description: editItemDescription || null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingItem(null);
+        setFeedback({ type: "success", text: "Barang berhasil diperbarui." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal memperbarui barang." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat memperbarui barang." });
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!deletingItem) return;
+    try {
+      const res = await fetch(`/api/inventory/items/${deletingItem.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setDeletingItem(null);
+        setFeedback({ type: "success", text: "Barang berhasil dihapus dari katalog." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menghapus barang." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menghapus barang." });
+    }
+  };
+
+  const handleEditUnit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUnit) return;
+
+    try {
+      const res = await fetch(`/api/inventory/asset-units/${editingUnit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          locationId: editUnitLocationId,
+          status: editUnitStatus,
+          condition: editUnitCondition,
+          serialNumber: editUnitSerialNumber || null,
+          notes: editUnitNotes || null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingUnit(null);
+        setFeedback({ type: "success", text: "Unit aset fisik berhasil diperbarui." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal memperbarui unit aset." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat memperbarui unit aset." });
+    }
+  };
+
+  const handleDeleteUnit = async () => {
+    if (!deletingUnit) return;
+    try {
+      const res = await fetch(`/api/inventory/asset-units/${deletingUnit.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setDeletingUnit(null);
+        setFeedback({ type: "success", text: "Unit aset fisik berhasil dihapus." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menghapus unit aset." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menghapus unit aset." });
+    }
+  };
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName) return;
+
+    try {
+      const res = await fetch("/api/inventory/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: categoryName,
+          description: categoryDesc || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setShowAddCategoryModal(false);
+        setCategoryName("");
+        setCategoryDesc("");
+        setFeedback({ type: "success", text: "Kategori baru berhasil ditambahkan." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menambahkan kategori." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menambahkan kategori." });
+    }
+  };
+
+  const handleEditCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCategory || !editCategoryName) return;
+
+    try {
+      const res = await fetch(`/api/inventory/categories/${editingCategory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editCategoryName,
+          description: editCategoryDesc || null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingCategory(null);
+        setFeedback({ type: "success", text: "Kategori berhasil diperbarui." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal memperbarui kategori." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat memperbarui kategori." });
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!deletingCategory) return;
+    try {
+      const res = await fetch(`/api/inventory/categories/${deletingCategory.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setDeletingCategory(null);
+        setFeedback({ type: "success", text: "Kategori berhasil dihapus." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menghapus kategori." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menghapus kategori." });
+    }
+  };
+
+  const handleAddLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!locationName || !locationCode) return;
+
+    try {
+      const res = await fetch("/api/inventory/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: locationName,
+          code: locationCode,
+          description: locationDesc || undefined,
+        }),
+      });
+
+      if (res.ok) {
+        setShowAddLocationModal(false);
+        setLocationName("");
+        setLocationCode("");
+        setLocationDesc("");
+        setFeedback({ type: "success", text: "Lokasi baru berhasil ditambahkan." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menambahkan lokasi." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menambahkan lokasi." });
+    }
+  };
+
+  const handleEditLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLocation || !editLocationName || !editLocationCode) return;
+
+    try {
+      const res = await fetch(`/api/inventory/locations/${editingLocation.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editLocationName,
+          code: editLocationCode,
+          description: editLocationDesc || null,
+        }),
+      });
+
+      if (res.ok) {
+        setEditingLocation(null);
+        setFeedback({ type: "success", text: "Lokasi berhasil diperbarui." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal memperbarui lokasi." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat memperbarui lokasi." });
+    }
+  };
+
+  const handleDeleteLocation = async () => {
+    if (!deletingLocation) return;
+    try {
+      const res = await fetch(`/api/inventory/locations/${deletingLocation.id}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        setDeletingLocation(null);
+        setFeedback({ type: "success", text: "Lokasi berhasil dihapus." });
+        loadData();
+      } else {
+        const json = await res.json().catch(() => null);
+        setFeedback({ type: "error", text: json?.error || "Gagal menghapus lokasi." });
+      }
+    } catch {
+      setFeedback({ type: "error", text: "Terjadi kesalahan saat menghapus lokasi." });
     }
   };
 
@@ -393,7 +699,7 @@ export function InventoryManager() {
     }
   };
 
-    const handleApproveRequisition = async (requisitionId: string, action: "approve" | "reject") => {
+  const handleApproveRequisition = async (requisitionId: string, action: "approve" | "reject") => {
     try {
       const res = await fetch(`/api/inventory/requisitions/${requisitionId}/approval`, {
         method: "POST",
@@ -469,28 +775,31 @@ export function InventoryManager() {
             </button>
           )}
           {activeTab === "consumables" && (
+            <button
+              onClick={() => {
+                if (consumableItems.length > 0 && !stockItemId) {
+                  setStockItemId(consumableItems[0].id);
+                }
+                setShowNewStockModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+            >
+              <Plus className="w-3.5 h-3.5" /> Catat Mutasi Persediaan
+            </button>
+          )}
+          {activeTab === "categories_locations" && isAdmin && (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (consumableItems.length > 0 && !reqItemId) {
-                    setReqItemId(consumableItems[0].id);
-                  }
-                  setShowRequisitionModal(true);
-                }}
+                onClick={() => setShowAddCategoryModal(true)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
               >
-                <Plus className="w-3.5 h-3.5" /> Ajukan Permintaan ATK
+                <Plus className="w-3.5 h-3.5" /> Tambah Kategori
               </button>
               <button
-                onClick={() => {
-                  if (consumableItems.length > 0 && !stockItemId) {
-                    setStockItemId(consumableItems[0].id);
-                  }
-                  setShowNewStockModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-subtle text-ink text-xs font-semibold rounded shadow-xs hover:bg-ground transition"
+                onClick={() => setShowAddLocationModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
               >
-                <Plus className="w-3.5 h-3.5" /> Catat Mutasi Persediaan
+                <Plus className="w-3.5 h-3.5" /> Tambah Lokasi
               </button>
             </div>
           )}
@@ -539,7 +848,42 @@ export function InventoryManager() {
         >
           <ClipboardList className="w-3.5 h-3.5" /> Persediaan ATK ({consumableItems.length})
         </button>
+        <button
+          onClick={() => setActiveTab("categories_locations")}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
+            activeTab === "categories_locations"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
+          }`}
+        >
+          <FolderTree className="w-3.5 h-3.5" /> Kategori & Lokasi ({categories.length}/{locations.length})
+        </button>
       </div>
+
+      {feedback && (
+        <div
+          className={`p-3 rounded-lg text-xs flex items-center justify-between transition ${
+            feedback.type === "success"
+              ? "bg-success-soft text-success-ink"
+              : "bg-danger-soft text-danger-ink"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {feedback.type === "success" ? (
+              <Check className="w-4 h-4 shrink-0 text-success" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 shrink-0 text-danger" />
+            )}
+            <span>{feedback.text}</span>
+          </div>
+          <button
+            onClick={() => setFeedback(null)}
+            className="text-muted hover:text-ink transition p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-4 gap-6">
@@ -640,18 +984,19 @@ export function InventoryManager() {
                   <th className="px-5 py-3">Klasifikasi</th>
                   <th className="px-5 py-3">Satuan</th>
                   <th className="px-5 py-3">Ambang Min. Stok</th>
+                  {isAdmin && <th className="px-5 py-3 text-right">Aksi</th>}
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-muted">
+                    <td colSpan={isAdmin ? 7 : 6} className="px-5 py-8 text-center text-muted">
                       Memuat katalog inventaris...
                     </td>
                   </tr>
                 ) : filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-muted">
+                    <td colSpan={isAdmin ? 7 : 6} className="px-5 py-8 text-center text-muted">
                       Belum ada barang pada katalog inventaris.
                     </td>
                   </tr>
@@ -687,6 +1032,33 @@ export function InventoryManager() {
                       <td className="px-5 py-3.5 tabular-nums text-ink">
                         {item.type === "consumable" ? item.minStockAlert : "-"}
                       </td>
+                      {isAdmin && (
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                setEditingItem(item);
+                                setEditItemName(item.name);
+                                setEditItemCode(item.code);
+                                setEditItemCategoryId(item.categoryId);
+                                setEditItemMinStockAlert(item.minStockAlert);
+                                setEditItemDescription(item.description || "");
+                              }}
+                              className="p-1 text-muted hover:text-accent hover:bg-subtle rounded transition"
+                              title="Sunting Barang"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeletingItem(item)}
+                              className="p-1 text-danger hover:bg-danger-soft rounded transition"
+                              title="Hapus Barang"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -726,7 +1098,7 @@ export function InventoryManager() {
                   <th className="px-5 py-3">Lokasi Fisik</th>
                   <th className="px-5 py-3">Status Sirkulasi</th>
                   <th className="px-5 py-3">Kondisi Fisik</th>
-                  <th className="px-5 py-3 text-right">Label Tag</th>
+                  <th className="px-5 py-3 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -789,12 +1161,40 @@ export function InventoryManager() {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <button
-                          onClick={() => setSelectedUnitForLabel(unit)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-ground hover:bg-subtle text-ink rounded transition font-medium"
-                        >
-                          <QrCode className="w-3.5 h-3.5 text-accent" /> Preview Tag
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setSelectedUnitForLabel(unit)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-ground hover:bg-subtle text-ink rounded transition font-medium"
+                            title="Preview Tag QR"
+                          >
+                            <QrCode className="w-3.5 h-3.5 text-accent" />
+                          </button>
+                          {isAdmin && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingUnit(unit);
+                                  setEditUnitLocationId(unit.locationId);
+                                  setEditUnitStatus(unit.status);
+                                  setEditUnitCondition(unit.condition);
+                                  setEditUnitSerialNumber(unit.serialNumber || "");
+                                  setEditUnitNotes(unit.notes || "");
+                                }}
+                                className="p-1 text-muted hover:text-accent hover:bg-subtle rounded transition"
+                                title="Sunting Unit Aset"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingUnit(unit)}
+                                className="p-1 text-danger hover:bg-danger-soft rounded transition"
+                                title="Hapus Unit Aset"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -906,7 +1306,7 @@ export function InventoryManager() {
             </table>
           </div>
         </div>
-      ) : (
+      ) : activeTab === "consumables" ? (
         /* Consumables & Stock Movements View */
         <div className="space-y-6">
           <div className="bg-white rounded-lg overflow-hidden">
@@ -1045,6 +1445,160 @@ export function InventoryManager() {
                             </div>
                           )}
                         </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Categories and Locations View */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Master Kategori */}
+          <div className="bg-white rounded-lg overflow-hidden space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-accent" /> Kategori Inventaris
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  Pengelompokan jenis barang inventaris sekolah.
+                </p>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAddCategoryModal(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-accent text-white font-medium rounded hover:bg-accent-strong transition"
+                >
+                  <Plus className="w-3 h-3" /> Tambah
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-4 py-2.5">Nama Kategori</th>
+                    <th className="px-4 py-2.5">Deskripsi</th>
+                    {isAdmin && <th className="px-4 py-2.5 text-right">Aksi</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 3 : 2} className="px-4 py-6 text-center text-muted">
+                        Belum ada kategori yang terdaftar.
+                      </td>
+                    </tr>
+                  ) : (
+                    categories.map((cat) => (
+                      <tr key={cat.id} className="hover:bg-subtle-warm transition">
+                        <td className="px-4 py-3 font-medium text-ink">{cat.name}</td>
+                        <td className="px-4 py-3 text-muted">{cat.description || "-"}</td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setEditingCategory(cat);
+                                  setEditCategoryName(cat.name);
+                                  setEditCategoryDesc(cat.description || "");
+                                }}
+                                className="p-1 text-muted hover:text-accent hover:bg-subtle rounded transition"
+                                title="Sunting Kategori"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingCategory(cat)}
+                                className="p-1 text-danger hover:bg-danger-soft rounded transition"
+                                title="Hapus Kategori"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Master Lokasi */}
+          <div className="bg-white rounded-lg overflow-hidden space-y-3 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-accent" /> Lokasi Penempatan
+                </h3>
+                <p className="text-xs text-muted mt-0.5">
+                  Gedung, ruangan, atau lab tempat aset diletakkan.
+                </p>
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => setShowAddLocationModal(true)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-accent text-white font-medium rounded hover:bg-accent-strong transition"
+                >
+                  <Plus className="w-3 h-3" /> Tambah
+                </button>
+              )}
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-ground text-muted font-semibold uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-4 py-2.5">Kode</th>
+                    <th className="px-4 py-2.5">Nama Lokasi</th>
+                    <th className="px-4 py-2.5">Deskripsi</th>
+                    {isAdmin && <th className="px-4 py-2.5 text-right">Aksi</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {locations.length === 0 ? (
+                    <tr>
+                      <td colSpan={isAdmin ? 4 : 3} className="px-4 py-6 text-center text-muted">
+                        Belum ada lokasi yang terdaftar.
+                      </td>
+                    </tr>
+                  ) : (
+                    locations.map((loc) => (
+                      <tr key={loc.id} className="hover:bg-subtle-warm transition">
+                        <td className="px-4 py-3 font-semibold text-ink">{loc.code}</td>
+                        <td className="px-4 py-3 font-medium text-ink">{loc.name}</td>
+                        <td className="px-4 py-3 text-muted">{loc.description || "-"}</td>
+                        {isAdmin && (
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setEditingLocation(loc);
+                                  setEditLocationName(loc.name);
+                                  setEditLocationCode(loc.code);
+                                  setEditLocationDesc(loc.description || "");
+                                }}
+                                className="p-1 text-muted hover:text-accent hover:bg-subtle rounded transition"
+                                title="Sunting Lokasi"
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => setDeletingLocation(loc)}
+                                className="p-1 text-danger hover:bg-danger-soft rounded transition"
+                                title="Hapus Lokasi"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -1619,6 +2173,587 @@ export function InventoryManager() {
           </div>
         </div>
       )}
+
+      {/* Modal Edit Item Master */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Sunting Barang Katalog</h3>
+
+            <form onSubmit={handleEditItem} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Kategori
+                </label>
+                <select
+                  value={editItemCategoryId}
+                  onChange={(e) => setEditItemCategoryId(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                >
+                  <option value="">Pilih Kategori...</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Kode Barang (SKU)
+                  </label>
+                  <input
+                    type="text"
+                    value={editItemCode}
+                    onChange={(e) => setEditItemCode(e.target.value)}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Klasifikasi
+                  </label>
+                  <input
+                    type="text"
+                    value={editingItem.type === "fixed_asset" ? "Aset Tetap" : "Habis Pakai"}
+                    disabled
+                    className="w-full text-xs p-2 rounded bg-subtle text-muted cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nama Barang
+                </label>
+                <input
+                  type="text"
+                  value={editItemName}
+                  onChange={(e) => setEditItemName(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              {editingItem.type === "consumable" && (
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Ambang Min. Stok
+                  </label>
+                  <input
+                    type="number"
+                    value={editItemMinStockAlert}
+                    onChange={(e) => setEditItemMinStockAlert(Number(e.target.value))}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    min={0}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Keterangan / Spesifikasi
+                </label>
+                <textarea
+                  value={editItemDescription}
+                  onChange={(e) => setEditItemDescription(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Delete Item Confirmation */}
+      {deletingItem && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-danger" /> Hapus Barang dari Katalog?
+            </h3>
+            <p className="text-xs text-muted">
+              Apakah Anda yakin ingin menghapus barang <strong className="text-ink">{deletingItem.name} ({deletingItem.code})</strong>?
+              Tindakan ini tidak dapat dibatalkan jika barang belum memiliki riwayat aset atau mutasi stok.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingItem(null)}
+                className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteItem}
+                className="px-3 py-1.5 text-xs bg-danger text-white font-semibold rounded shadow-xs hover:bg-danger-ink transition"
+              >
+                Hapus Barang
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Asset Unit */}
+      {editingUnit && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Sunting Unit Fisik Aset</h3>
+            <p className="text-xs text-muted">
+              Tag: <strong className="text-ink">{editingUnit.assetTag}</strong> - {editingUnit.itemName}
+            </p>
+
+            <form onSubmit={handleEditUnit} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Ruangan / Lokasi Penempatan
+                </label>
+                <select
+                  value={editUnitLocationId}
+                  onChange={(e) => setEditUnitLocationId(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                >
+                  <option value="">Pilih Lokasi...</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name} ({loc.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Status Sirkulasi
+                  </label>
+                  <select
+                    value={editUnitStatus}
+                    onChange={(e) => setEditUnitStatus(e.target.value as "available" | "loaned" | "maintenance" | "disposed")}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    <option value="available">Tersedia</option>
+                    <option value="loaned">Dipinjam</option>
+                    <option value="maintenance">Pemeliharaan</option>
+                    <option value="disposed">Dihapuskan</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Kondisi Fisik
+                  </label>
+                  <select
+                    value={editUnitCondition}
+                    onChange={(e) => setEditUnitCondition(e.target.value as "good" | "light_damage" | "heavy_damage" | "lost")}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  >
+                    <option value="good">Baik / Prima</option>
+                    <option value="light_damage">Rusak Ringan</option>
+                    <option value="heavy_damage">Rusak Berat</option>
+                    <option value="lost">Hilang</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Serial Pabrikan
+                </label>
+                <input
+                  type="text"
+                  value={editUnitSerialNumber}
+                  onChange={(e) => setEditUnitSerialNumber(e.target.value)}
+                  placeholder="e.g. SN-88921"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Catatan Tambahan
+                </label>
+                <input
+                  type="text"
+                  value={editUnitNotes}
+                  onChange={(e) => setEditUnitNotes(e.target.value)}
+                  placeholder="Catatan penempatan atau kondisi..."
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingUnit(null)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Delete Asset Unit Confirmation */}
+      {deletingUnit && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-danger" /> Hapus Unit Aset Fisik?
+            </h3>
+            <p className="text-xs text-muted">
+              Apakah Anda yakin ingin menghapus unit aset <strong className="text-ink">{deletingUnit.assetTag}</strong> ({deletingUnit.itemName})?
+              Unit aset yang sedang dipinjam tidak dapat dihapus.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingUnit(null)}
+                className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteUnit}
+                className="px-3 py-1.5 text-xs bg-danger text-white font-semibold rounded shadow-xs hover:bg-danger-ink transition"
+              >
+                Hapus Unit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add Category */}
+      {showAddCategoryModal && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Tambah Kategori Inventaris</h3>
+
+            <form onSubmit={handleAddCategory} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nama Kategori
+                </label>
+                <input
+                  type="text"
+                  value={categoryName}
+                  onChange={(e) => setCategoryName(e.target.value)}
+                  placeholder="e.g. Laboratorium IPA"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Deskripsi Kategori
+                </label>
+                <textarea
+                  value={categoryDesc}
+                  onChange={(e) => setCategoryDesc(e.target.value)}
+                  placeholder="Opsional rincian kategori..."
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Kategori
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Category */}
+      {editingCategory && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Sunting Kategori Inventaris</h3>
+
+            <form onSubmit={handleEditCategory} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nama Kategori
+                </label>
+                <input
+                  type="text"
+                  value={editCategoryName}
+                  onChange={(e) => setEditCategoryName(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Deskripsi Kategori
+                </label>
+                <textarea
+                  value={editCategoryDesc}
+                  onChange={(e) => setEditCategoryDesc(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCategory(null)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Delete Category Confirmation */}
+      {deletingCategory && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-danger" /> Hapus Kategori?
+            </h3>
+            <p className="text-xs text-muted">
+              Apakah Anda yakin ingin menghapus kategori <strong className="text-ink">{deletingCategory.name}</strong>?
+              Kategori yang masih digunakan oleh barang tidak dapat dihapus.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingCategory(null)}
+                className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCategory}
+                className="px-3 py-1.5 text-xs bg-danger text-white font-semibold rounded shadow-xs hover:bg-danger-ink transition"
+              >
+                Hapus Kategori
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Add Location */}
+      {showAddLocationModal && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Tambah Lokasi Penempatan</h3>
+
+            <form onSubmit={handleAddLocation} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Kode Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    value={locationCode}
+                    onChange={(e) => setLocationCode(e.target.value)}
+                    placeholder="e.g. LOC-LAB-IPA"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Nama Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    value={locationName}
+                    onChange={(e) => setLocationName(e.target.value)}
+                    placeholder="e.g. Laboratorium IPA"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Deskripsi Lokasi
+                </label>
+                <textarea
+                  value={locationDesc}
+                  onChange={(e) => setLocationDesc(e.target.value)}
+                  placeholder="Gedung, lantai, atau keterangan posisi..."
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddLocationModal(false)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Lokasi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Edit Location */}
+      {editingLocation && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Sunting Lokasi Penempatan</h3>
+
+            <form onSubmit={handleEditLocation} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Kode Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    value={editLocationCode}
+                    onChange={(e) => setEditLocationCode(e.target.value)}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Nama Lokasi
+                  </label>
+                  <input
+                    type="text"
+                    value={editLocationName}
+                    onChange={(e) => setEditLocationName(e.target.value)}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Deskripsi Lokasi
+                </label>
+                <textarea
+                  value={editLocationDesc}
+                  onChange={(e) => setEditLocationDesc(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingLocation(null)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+                >
+                  Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Delete Location Confirmation */}
+      {deletingLocation && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-danger" /> Hapus Lokasi?
+            </h3>
+            <p className="text-xs text-muted">
+              Apakah Anda yakin ingin menghapus lokasi <strong className="text-ink">{deletingLocation.name} ({deletingLocation.code})</strong>?
+              Lokasi yang masih memiliki unit aset tidak dapat dihapus.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingLocation(null)}
+                className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteLocation}
+                className="px-3 py-1.5 text-xs bg-danger text-white font-semibold rounded shadow-xs hover:bg-danger-ink transition"
+              >
+                Hapus Lokasi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

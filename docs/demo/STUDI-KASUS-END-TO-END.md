@@ -69,29 +69,56 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** label presensi memakai hari sekolah terakhir, misalnya `Presensi per 23 Okt 2026`, bukan "hari ini" saat demo dijalankan pada akhir pekan.
 - **Cek:** `8 dari 8 hadir` pada 23 Oktober 2026.
 
-### 1.3 Tambah rombel
-- **Aksi:** buka **Struktur Akademik**, isi nama `X-MIPA-3`, tingkat 10, klik **Tambah Rombel**.
+### 1.3 Konfigurasi Tahun Ajaran & Semester
+- **Aksi:** buka **Struktur Akademik** → tab **Tahun Ajaran & Semester**. Admin dapat melihat daftar seluruh kalender akademik, menambahkan tahun ajaran baru (misalnya `2027/2028` Semester Ganjil dengan rentang tanggal kalender), atau mengklik tombol **Aktifkan** pada tahun ajaran yang dipilih.
+- **Hasil:** tahun ajaran yang diaktifkan menjadi kalender berjalan secara instan (`isActive = true`), status visual berganti menjadi "Berjalan", dan tahun ajaran lainnya otomatis dinonaktifkan.
+- **Cek:** data tahun ajaran dapat disunting rentang waktu dan semesternya melalui tombol **Sunting**.
+
+### 1.4 Tambah rombel
+- **Aksi:** buka tab **Rombongan Belajar (Rombel)**, isi nama `X-MIPA-3`, tingkat 10, klik **Tambah Rombel**.
 - **Hasil:** kartu rombel baru muncul dengan 0 siswa dan wali "Belum ditentukan".
 - **Cek:** reload halaman; rombel tetap ada karena tersimpan di D1.
 
-### 1.4 Terbitkan SPP November 2026
-- **Aksi:** buka **Keuangan & SPP** sebagai admin. Pilih periode `2026-11` pada kontrol di kanan atas, lalu klik **Terbitkan Tagihan Massal** (atau via endpoint `POST /api/finance/batch-generate`).
-- **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan notifikasi 0 tagihan baru (dilewati karena idempoten).
-- **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
+### 1.5 Pendaftaran dan Manajemen Guru & Staf
+- **Aksi:** buka menu **Data Guru & Staf**, klik **Tambah Guru & Staf**, masukkan NIP/username login, nama lengkap & gelar, kontak, peran (`teacher` atau `admin`), serta password akun.
+- **Hasil:** akun staf baru terdaftar pada tabel direktori pegawai sekolah dan siap ditugaskan.
+- **Cek:** biodata staf dapat disunting atau disetel ulang password-nya; akun staf dapat dihapus (dengan perlindungan akun admin yang sedang aktif tidak dapat menghapus dirinya sendiri).
 
-### 1.5 Verifikasi bukti transfer & otomatisasi buku kas
+### 1.6 Pendaftaran dan Manajemen Siswa
+- **Aksi:** buka menu **Data Siswa**, klik **Tambah Siswa Baru**, masukkan NIS/username unik, nama lengkap, kontak, serta password akun.
+- **Hasil:** siswa baru terdaftar pada tabel akun siswa dengan indikator rombel awal "Belum ditempatkan".
+- **Cek:** biodata siswa dapat disunting atau disetel ulang password-nya melalui tombol aksi pada baris tabel; validasi mendeteksi username ganda bila mencoba mendaftarkan username yang sudah ada.
+
+### 1.7 Penempatan Rombel & Penugasan Wali Kelas
+- **Aksi:** buka **Struktur Akademik**. Pada setiap kartu rombel, admin dapat memilih guru sebagai **Wali Kelas** dari dropdown guru aktif atau menghapusnya. Klik **Kelola Anggota Siswa** untuk membuka dialog manajemen anggota kelas.
+- **Hasil:** dialog menampilkan daftar siswa yang sedang terdaftar di rombel tersebut beserta opsi penambahan siswa dari daftar siswa aktif yang belum terdaftar.
+- **Cek:** pilih salah satu siswa lalu klik **Masukkan**; siswa bertambah di rombel dan jumlah siswa di kartu rombel otomatis terbarui. Tombol **Keluarkan** mengeluarkan siswa dari rombel secara aman.
+
+### 1.8 Pendaftaran dan Manajemen Orang Tua / Wali Siswa
+- **Aksi:** buka menu **Data Orang Tua / Wali**, klik **Tambah Orang Tua / Wali**, masukkan nama lengkap, username login, kontak, password, serta centang siswa asuhan awal (misal siswa yang baru didaftarkan).
+- **Hasil:** akun wali murid terdaftar pada master direktori wali dengan lencana siswa asuhan terkait.
+- **Cek:** klik tombol **Relasi** pada baris wali murid untuk menambah atau melepas tautan siswa asuhan; profil wali murid dapat disunting atau disetel ulang password-nya.
+
+### 1.9 Konfigurasi Tarif SPP & Pembuatan Tagihan
+- **Aksi:** buka **Keuangan & SPP** sebagai admin. Buka tab **Komponen Biaya / Tarif** untuk melihat master tarif (seperti SPP Bulanan `fee_spp` Rp 350.000 atau Uang Kegiatan `fee_kegiatan` Rp 150.000). Admin dapat menambah tarif baru atau menyunting nominal tarif yang ada.
+- **Penerbitan Otomatis:** pada tab tarif atau daftar tagihan, pilih bulan periode `2026-11` lalu klik **Terbitkan Tagihan Massal** (memanggil `POST /api/finance/batch-generate`).
+- **Penerbitan Manual:** pada tab **Daftar Tagihan & Pembayaran**, klik tombol **Buat Tagihan Manual**, pilih siswa (misalnya Ahmad Dahlan `usr_student_1`), pilih jenis tarif, lalu simpan.
+- **Hasil:** tagihan baru dibuat dan langsung tercantum di daftar tagihan dengan rincian siswa, nominal, dan status pembayaran.
+- **Cek:** daftar tagihan memuat invoice untuk siswa dengan tanggal jatuh tempo terhitung otomatis.
+
+### 1.10 Verifikasi bukti transfer & otomatisasi buku kas
 - **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
 - **Hasil:** status invoice berubah menjadi **Lunas**, `paidAt` terisi, dan mutasi debit kas otomatis terbentuk di Buku Kas sebesar nominal SPP (Rp 350.000) dengan deskripsi `Pembayaran SPP - 2026-10 (Budi Santoso)`.
 - **Cek:**
   1. Pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
   2. Buka tab **Buku Kas & Mutasi** pada menu Keuangan & SPP: entri debit baru berlabel badge **Otomatis SPP** tampil pada baris teratas, dan total debit kas bertambah.
 
-### 1.6 Pengelolaan buku kas & mutasi kas manual
+### 1.11 Pengelolaan buku kas & mutasi kas manual
 - **Aksi:** di tab **Buku Kas & Mutasi**, isi form "Tambah Transaksi Kas Baru" untuk mencatat pengeluaran operasional (Kredit), misal kategori `ATK` atau `Listrik`, masukkan nominal dan deskripsi, lalu klik **Simpan Transaksi**.
 - **Hasil:** transaksi kredit baru langsung tercatat pada tabel dengan saldo berjalan (*running balance*) terbarui secara otomatis.
 - **Cek:** gunakan filter "Manual / Operasional" dan "Otomatis SPP" untuk membedakan transaksi kas yang bersumber dari verifikasi tagihan siswa vs pengeluaran kas manual sekolah.
 
-### 1.7 Audit inventaris
+### 1.12 Audit inventaris
 - **Aksi:** buka **Katalog Inventaris** → sub-tab **Sirkulasi Pinjam**.
 - **Hasil:** pinjaman laptop `AST/2026/2004` berlabel **Terlambat** karena estimasi kembali 22 Oktober 2026 sudah lewat.
 - **Cek:** sub-tab **Persediaan ATK** menampilkan penghapus dengan saldo 3 di bawah minimum 5 (ambang batas peringatan stok).

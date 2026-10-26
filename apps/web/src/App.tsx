@@ -7,6 +7,9 @@ import { FinanceManager } from "./components/FinanceManager";
 import { GradebookManager } from "./components/GradebookManager";
 import { ParentPortal } from "./components/ParentPortal";
 import { InventoryManager } from "./components/InventoryManager";
+import { StudentManager } from "./components/StudentManager";
+import { StaffManager } from "./components/StaffManager";
+import { GuardianManager } from "./components/GuardianManager";
 import {
   GraduationCap,
   BookOpen,
@@ -18,6 +21,7 @@ import {
   LayoutDashboard,
   Search,
   Package,
+  UserCheck,
 } from "lucide-react";
 
 const formatShortDate = (value?: string | null) => {
@@ -66,9 +70,19 @@ function MainDashboard() {
   const { user, logout } = useAuth();
   const [activeYear, setActiveYear] = useState<ActiveYear | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [activeTab, setActiveTab] = useState<
-    "overview" | "academic" | "attendance" | "finance" | "gradebook" | "parent" | "inventory"
-  >("overview");
+  type TabId =
+    | "overview"
+    | "students"
+    | "guardians"
+    | "staff"
+    | "academic"
+    | "attendance"
+    | "finance"
+    | "gradebook"
+    | "parent"
+    | "inventory";
+
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
 
   useEffect(() => {
     fetch("/api/academic/years?active=true")
@@ -86,15 +100,28 @@ function MainDashboard() {
       .catch(() => undefined);
   }, []);
 
-  const navItems = [
+  interface NavItem {
+    id: TabId;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+  }
+
+  const navItems: NavItem[] = [
     { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
+    ...(user?.role === "admin"
+      ? [
+          { id: "staff" as const, label: "Data Guru & Staf", icon: Users },
+          { id: "students" as const, label: "Data Siswa", icon: GraduationCap },
+          { id: "guardians" as const, label: "Data Orang Tua / Wali", icon: UserCheck },
+        ]
+      : []),
     { id: "academic", label: "Struktur Akademik", icon: BookOpen },
     { id: "attendance", label: "Presensi Siswa", icon: CalendarCheck },
     { id: "finance", label: "Keuangan & SPP", icon: CreditCard },
     { id: "gradebook", label: "Buku Nilai & Rapor", icon: Award },
     { id: "parent", label: "Portal Orang Tua", icon: Users },
     { id: "inventory", label: "Katalog Inventaris", icon: Package },
-  ] as const;
+  ];
 
   return (
     <div className="min-h-dvh bg-ground flex" data-ui>
@@ -288,6 +315,12 @@ function MainDashboard() {
                 </div>
               </div>
             </div>
+          ) : activeTab === "staff" ? (
+            <StaffManager />
+          ) : activeTab === "students" ? (
+            <StudentManager />
+          ) : activeTab === "guardians" ? (
+            <GuardianManager />
           ) : activeTab === "academic" ? (
             <AcademicManager />
           ) : activeTab === "attendance" ? (

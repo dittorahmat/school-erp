@@ -44,7 +44,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 - **Satu Worker fullstack** di `school-erp.tech1solusi.workers.dev`. Driver database pure-JS: Web Crypto dan binding D1, tanpa dependensi native C++.
 - **Akses database**: inisialisasi dengan `createDb(c.env.DB)`, impor skema dan helper Drizzle dari root `@school-erp/db`. Subpath seperti `@school-erp/db/schema` tidak terdaftar.
 - **Deep modules**: mutasi multi-tabel, validasi state-machine, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest. Handler HTTP hanya menerjemahkan payload JSON ke pemanggilan modul. Referensi: `apps/api/src/inventory/circulation.ts` + `ledger.ts`.
-- **Otorisasi**: setiap rute menyatakan perannya. Tabel rute tunggal ada di `apps/api/src/testing/routes.ts`; `authz.test.ts` membuktikan allow list-nya dan `fallback.test.ts` membuktikan setiap GET menjawab 500 saat query gagal. Tambahkan rute baru di tabel itu, bukan di tiap suite.
+- **Otorisasi**: setiap rute menyatakan perannya. Tabel rute tunggal ada di `apps/api/src/testing/routes.ts`; `authz.test.ts` membuktikan allow list-nya secara otomatis terhadap semua rute Hono dan `fallback.test.ts` membuktikan setiap GET menjawab 500 saat query gagal. Tambahkan rute baru di tabel itu, bukan di tiap suite.
 - **Akses siswa**: `canReadStudent`, `visibleStudentIds`, dan `activeYearId` ada di `apps/api/src/access/student-access.ts`. Rute memanggil modul itu; jangan menyalin cek wali atau tahun ajaran ke handler.
 - **Data demo**: `packages/db/src/seed/demo.ts` satu-satunya dataset. Fallback hanya lewat `isEmptyDatabase` (`apps/api/src/empty-database.ts`) saat database belum pernah di-seed; database terisi yang kosong untuk satu query menjawab kosong. Dikunci `fallback.test.ts`.
 - **Dokumen demo**: `check:docs` memvalidasi setiap ID yang dikutip di `docs/demo/` terhadap dataset. Jangan menulis jumlah pemeriksaan secara hardcoded.
@@ -59,6 +59,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 
 - Untuk pencarian teks cepat, gunakan `rtk rg` (atau `rg`) karena ripgrep terpasang di sistem (`C:\Users\User\.local\bin\rg.exe`). Jangan gunakan `grep` langsung (tidak ada di PATH Windows default).
 - Operasi branch worktree: saat menghapus branch fitur setelah merge ke integration branch yang posisinya mendahului branch root (`main`), jalankan `git branch -d` pada direktori worktree integrasi terkait atau gunakan `-C <worktree-path>`.
+- Pemanggilan GitHub CLI (`gh`): lakukan dengan penanganan retry atau timeout yang cukup jika terjadi kendala jaringan sesaat.
 
 ## Issue & commit di Windows
 
