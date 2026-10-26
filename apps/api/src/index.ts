@@ -27,6 +27,17 @@ app.use(
   })
 );
 
+/**
+ * Signing needs JWT_SECRET. Fail with an actionable message instead of a crypto
+ * stack trace when a checkout or deployment never configured it.
+ */
+app.use("/api/*", async (c, next) => {
+  if (c.req.path !== "/api/health" && !c.env?.JWT_SECRET) {
+    return c.json({ error: "JWT_SECRET belum dikonfigurasi" }, 500);
+  }
+  await next();
+});
+
 app.route("/api/auth", authRouter);
 app.route("/api/academic", academicRouter);
 app.route("/api/attendance", attendanceRouter);

@@ -223,7 +223,7 @@ Yang diperiksa: health, login lima peran, seed idempoten, tahun ajaran, rombel, 
 - **Smoke test default lokal** karena membuat invoice, pinjaman, dan requisisi uji. Untuk produksi, gunakan verifikasi manual.
 - **Seed bersifat aditif**. Tidak ada tombol reset di produksi; reset hanya untuk D1 lokal.
 - **R2 lokal** disimulasikan Miniflare. Unggahan produksi masuk ke bucket `school-erp-storage`.
-- **JWT_SECRET produksi** masih berupa nilai di konfigurasi repo. Ini temuan keamanan terpisah dan tidak diubah oleh demo ini.
+- **JWT_SECRET** tidak ada di repo: lokal lewat `.dev.vars`, produksi lewat `wrangler secret put`. Rotasi membatalkan semua sesi yang sedang aktif.
 - **UI portal wali** menampilkan ringkasan; detail riwayat per tagihan masih melalui kartu SPP.
 - **Presensi** disimpan per kelas dan tanggal; dukungan presensi per mata pelajaran sudah ada di skema tetapi belum diekspos di UI.
 
