@@ -58,6 +58,11 @@ export const routes: RouteSpec[] = [
   { method: "POST", path: "/api/attendance/session", allow: ["admin", "teacher"] },
 
   { method: "GET", path: "/api/finance/invoices", allow: ALL },
+  { method: "POST", path: "/api/finance/invoices", allow: ["admin"] },
+  { method: "GET", path: "/api/finance/fee-components", allow: ["admin", "teacher"] },
+  { method: "POST", path: "/api/finance/fee-components", allow: ["admin"] },
+  { method: "PATCH", path: "/api/finance/fee-components/fee_test", allow: ["admin"] },
+  { method: "DELETE", path: "/api/finance/fee-components/fee_test", allow: ["admin"] },
   { method: "POST", path: "/api/finance/batch-generate", allow: ["admin"] },
   { method: "POST", path: "/api/finance/upload-proof", allow: ALL },
   { method: "POST", path: "/api/finance/verify", allow: ["admin"] },

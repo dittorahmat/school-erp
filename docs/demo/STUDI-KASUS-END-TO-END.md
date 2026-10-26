@@ -99,13 +99,12 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** akun wali murid terdaftar pada master direktori wali dengan lencana siswa asuhan terkait.
 - **Cek:** klik tombol **Relasi** pada baris wali murid untuk menambah atau melepas tautan siswa asuhan; profil wali murid dapat disunting atau disetel ulang password-nya.
 
-### 1.9 Terbitkan SPP November 2026
-- **Aksi:** buka **Keuangan & SPP** sebagai admin. Penerbitan massal dilakukan melalui API/alat demo:
-  ```
-  POST /api/finance/batch-generate  { "month": "2026-11" }
-  ```
-- **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan 0 tagihan baru.
-- **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
+### 1.9 Konfigurasi Tarif SPP & Pembuatan Tagihan
+- **Aksi:** buka **Keuangan & SPP** sebagai admin. Buka tab **Komponen Biaya / Tarif** untuk melihat master tarif (seperti SPP Bulanan `fee_spp` Rp 350.000 atau Uang Kegiatan `fee_kegiatan` Rp 150.000). Admin dapat menambah tarif baru atau menyunting nominal tarif yang ada.
+- **Penerbitan Otomatis:** pada tab tarif, pilih bulan periode `2026-11` lalu klik **Generate Tagihan** (memanggil `POST /api/finance/batch-generate`).
+- **Penerbitan Manual:** pada tab **Daftar Tagihan & Pembayaran**, klik tombol **Buat Tagihan Manual**, pilih siswa (misalnya Ahmad Dahlan `usr_student_1`), pilih jenis tarif, lalu simpan.
+- **Hasil:** tagihan baru dibuat dan langsung tercantum di daftar tagihan dengan rincian siswa, nominal, dan status pembayaran.
+- **Cek:** daftar tagihan memuat invoice untuk siswa dengan tanggal jatuh tempo terhitung otomatis.
 
 ### 1.10 Verifikasi bukti transfer
 - **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
