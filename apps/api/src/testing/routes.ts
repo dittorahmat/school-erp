@@ -32,6 +32,7 @@ export interface RouteSpec {
 export const routes: RouteSpec[] = [
   ...staffRoutes,
   ...guardianRoutes,
+  { method: "GET", path: "/api/auth/me", allow: ALL },
   { method: "GET", path: "/api/dashboard/summary", allow: ALL },
 
   { method: "GET", path: "/api/academic/years", allow: ALL },

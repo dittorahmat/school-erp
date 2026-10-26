@@ -38,8 +38,11 @@ const envWith = (db: D1Database) => ({
 const get = async (path: string, role: Role, db: D1Database) =>
   app.request(path, { headers: { Authorization: `Bearer ${await tokenFor(role)}` } }, envWith(db));
 
+// Routes that do not query the database (e.g. JWT session inspection) do not answer 500 on DB failure
+const dbReadRoutes = readRoutes.filter((route) => route.path !== "/api/auth/me");
+
 describe("database failures are not masked by demo data", () => {
-  it.each(readRoutes)("$method $path answers 500 when the query fails", async (route) => {
+  it.each(dbReadRoutes)("$method $path answers 500 when the query fails", async (route) => {
     const response = await get(route.path, route.allow[0], throwingD1);
     const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
 
