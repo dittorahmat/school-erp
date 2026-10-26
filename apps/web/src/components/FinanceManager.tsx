@@ -759,7 +759,7 @@ export function FinanceManager() {
                     <th className="px-4 py-3 text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody>
                   {feeComponents.map((comp) => (
                     <tr key={comp.id} className="hover:bg-ground transition">
                       <td className="px-4 py-3 font-semibold text-ink">{comp.name}</td>
@@ -955,7 +955,7 @@ export function FinanceManager() {
                       <th className="px-4 py-3 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
+                  <tbody>
                     {cashTransactions
                       .filter((tx) => {
                         if (ledgerFilter === "spp") return Boolean(tx.invoiceId);
@@ -1128,7 +1128,7 @@ export function FinanceManager() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <div className="flex items-center justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsComponentModalOpen(false)}
@@ -1265,7 +1265,7 @@ export function FinanceManager() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+              <div className="flex items-center justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsManualInvoiceModalOpen(false)}
