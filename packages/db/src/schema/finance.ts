@@ -36,6 +36,7 @@ export const cashTransactions = sqliteTable("cash_transactions", {
   category: text("category").notNull(),
   amount: integer("amount").notNull(),
   description: text("description").notNull(),
+  invoiceId: text("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
   createdBy: text("created_by").references(() => users.id),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });

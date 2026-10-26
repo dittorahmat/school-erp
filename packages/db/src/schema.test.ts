@@ -25,6 +25,7 @@ describe("Database Schema Entities", () => {
     expect(subjects).toBeDefined();
     expect(feeComponents).toBeDefined();
     expect(cashTransactions).toBeDefined();
+    expect(cashTransactions.invoiceId).toBeDefined();
     expect(inventoryCategories).toBeDefined();
     expect(inventoryItems).toBeDefined();
     expect(inventoryLocations).toBeDefined();
