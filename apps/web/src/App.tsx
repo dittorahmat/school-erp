@@ -8,6 +8,7 @@ import { GradebookManager } from "./components/GradebookManager";
 import { ParentPortal } from "./components/ParentPortal";
 import { InventoryManager } from "./components/InventoryManager";
 import { StudentManager } from "./components/StudentManager";
+import { StaffManager } from "./components/StaffManager";
 import {
   GraduationCap,
   BookOpen,
@@ -70,6 +71,7 @@ function MainDashboard() {
   type TabId =
     | "overview"
     | "students"
+    | "staff"
     | "academic"
     | "attendance"
     | "finance"
@@ -104,7 +106,7 @@ function MainDashboard() {
   const navItems: NavItem[] = [
     { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
     ...(user?.role === "admin"
-      ? [{ id: "students" as const, label: "Data Siswa", icon: GraduationCap }]
+      ? [{ id: "staff" as const, label: "Data Guru & Staf", icon: Users }, { id: "students" as const, label: "Data Siswa", icon: GraduationCap }]
       : []),
     { id: "academic", label: "Struktur Akademik", icon: BookOpen },
     { id: "attendance", label: "Presensi Siswa", icon: CalendarCheck },
@@ -306,6 +308,8 @@ function MainDashboard() {
                 </div>
               </div>
             </div>
+          ) : activeTab === "staff" ? (
+            <StaffManager />
           ) : activeTab === "students" ? (
             <StudentManager />
           ) : activeTab === "academic" ? (

@@ -7,6 +7,13 @@
 export const ALL = ["admin", "teacher", "student", "guardian"] as const;
 export type Role = (typeof ALL)[number];
 
+export const staffRoutes: RouteSpec[] = [
+  { method: "GET", path: "/api/staff", allow: ["admin", "teacher"] },
+  { method: "POST", path: "/api/staff", allow: ["admin"] },
+  { method: "PATCH", path: "/api/staff/usr_teacher_test", allow: ["admin"] },
+  { method: "DELETE", path: "/api/staff/usr_teacher_test", allow: ["admin"] },
+];
+
 export interface RouteSpec {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
@@ -14,6 +21,7 @@ export interface RouteSpec {
 }
 
 export const routes: RouteSpec[] = [
+  ...staffRoutes,
   { method: "GET", path: "/api/dashboard/summary", allow: ALL },
 
   { method: "GET", path: "/api/academic/years", allow: ALL },

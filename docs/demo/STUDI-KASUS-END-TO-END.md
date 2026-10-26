@@ -74,12 +74,17 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** kartu rombel baru muncul dengan 0 siswa dan wali "Belum ditentukan".
 - **Cek:** reload halaman; rombel tetap ada karena tersimpan di D1.
 
-### 1.4 Pendaftaran dan Manajemen Siswa
+### 1.4 Pendaftaran dan Manajemen Guru & Staf
+- **Aksi:** buka menu **Data Guru & Staf**, klik **Tambah Guru & Staf**, masukkan NIP/username login, nama lengkap & gelar, kontak, peran (`teacher` atau `admin`), serta password akun.
+- **Hasil:** akun staf baru terdaftar pada tabel direktori pegawai sekolah dan siap ditugaskan.
+- **Cek:** biodata staf dapat disunting atau disetel ulang password-nya; akun staf dapat dihapus (dengan perlindungan akun admin yang sedang aktif tidak dapat menghapus dirinya sendiri).
+
+### 1.5 Pendaftaran dan Manajemen Siswa
 - **Aksi:** buka menu **Data Siswa**, klik **Tambah Siswa Baru**, masukkan NIS/username unik, nama lengkap, kontak, serta password akun.
 - **Hasil:** siswa baru terdaftar pada tabel akun siswa dengan indikator rombel awal "Belum ditempatkan".
 - **Cek:** biodata siswa dapat disunting atau disetel ulang password-nya melalui tombol aksi pada baris tabel; validasi mendeteksi username ganda bila mencoba mendaftarkan username yang sudah ada.
 
-### 1.5 Terbitkan SPP November 2026
+### 1.6 Terbitkan SPP November 2026
 - **Aksi:** buka **Keuangan & SPP** sebagai admin. Penerbitan massal dilakukan melalui API/alat demo:
   ```
   POST /api/finance/batch-generate  { "month": "2026-11" }
@@ -87,12 +92,12 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan 0 tagihan baru.
 - **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
 
-### 1.6 Verifikasi bukti transfer
+### 1.7 Verifikasi bukti transfer
 - **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
 - **Hasil:** status berubah menjadi **Lunas**, `paidAt` terisi, dan KPI verifikasi tertunda berkurang.
 - **Cek:** pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
 
-### 1.7 Audit inventaris
+### 1.8 Audit inventaris
 - **Aksi:** buka **Katalog Inventaris** → tab **Sirkulasi Pinjam**.
 - **Hasil:** pinjaman laptop `AST/2026/2004` berlabel **Terlambat** karena estimasi kembali 22 Oktober 2026 sudah lewat.
 - **Cek:** tab **Habis Pakai** menampilkan penghapus dengan saldo 3 di bawah minimum 5.
