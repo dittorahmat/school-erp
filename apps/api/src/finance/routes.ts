@@ -7,8 +7,6 @@ import {
   and,
   classrooms,
   createDb,
-  demoAcademicYears,
-  demoEnrollments,
   demoGuardianStudents,
   demoSeedInvoices,
   demoUsers,
@@ -20,6 +18,7 @@ import {
   studentEnrollments,
   users,
 } from "@school-erp/db";
+import { isEmptyDatabase } from "../empty-database";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -36,23 +35,21 @@ const verifySchema = z.object({
   status: z.enum(["paid", "unpaid"]),
 });
 
-async function resolveDemoStudentIds(
+async function visibleStudentIds(
   db: ReturnType<typeof createDb>,
   user: { sub: string; username: string; role: string }
 ) {
   if (user.role === "admin" || user.role === "teacher") return null;
   if (user.role === "student") return [user.sub];
 
-  try {
-    const links = await db
-      .select({ studentId: guardianStudents.studentId })
-      .from(guardianStudents)
-      .where(eq(guardianStudents.guardianId, user.sub));
-    if (links.length > 0) return links.map((link) => link.studentId);
-  } catch {
-    // fallback below
-  }
+  const links = await db
+    .select({ studentId: guardianStudents.studentId })
+    .from(guardianStudents)
+    .where(eq(guardianStudents.guardianId, user.sub));
+  if (links.length > 0) return links.map((link) => link.studentId);
+  if (!(await isEmptyDatabase(db))) return [];
 
+  // Never-seeded database: fall back to the demo guardian links.
   const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
   if (!demoGuardian) return [];
   return demoGuardianStudents
@@ -68,19 +65,17 @@ async function canAccessInvoice(
   if (user.role === "admin" || user.role === "teacher") return true;
   if (user.role === "student") return user.sub === studentId;
 
-  try {
-    const links = await db
-      .select({ id: guardianStudents.id })
-      .from(guardianStudents)
-      .where(
-        and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
-      )
-      .limit(1);
-    if (links.length > 0) return true;
-  } catch {
-    // fallback below
-  }
+  const links = await db
+    .select({ id: guardianStudents.id })
+    .from(guardianStudents)
+    .where(
+      and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
+    )
+    .limit(1);
+  if (links.length > 0) return true;
+  if (!(await isEmptyDatabase(db))) return false;
 
+  // Never-seeded database: fall back to the demo guardian links.
   const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
   return Boolean(
     demoGuardian &&
@@ -98,9 +93,9 @@ financeRouter.get("/invoices", async (c) => {
   const month = c.req.query("month");
   const status = c.req.query("status");
 
-  const allowedStudentIds = await resolveDemoStudentIds(db, user);
-
   try {
+    const allowedStudentIds = await visibleStudentIds(db, user);
+
     const rows = await db
       .select({
         id: invoices.id,
@@ -138,20 +133,23 @@ financeRouter.get("/invoices", async (c) => {
         })),
       });
     }
-  } catch {
-    // fallback below
-  }
 
-  const demoStudentIds = allowedStudentIds;
-  return c.json({
-    data: demoSeedInvoices.filter((invoice) => {
-      if (demoStudentIds && !demoStudentIds.includes(invoice.studentId)) return false;
-      if (requestedStudent && invoice.studentId !== requestedStudent) return false;
-      if (month && invoice.month !== month) return false;
-      if (status && invoice.status !== status) return false;
-      return true;
-    }),
-  });
+    // A month without invoices is a real answer once the database is seeded.
+    if (!(await isEmptyDatabase(db))) return c.json({ data: [] });
+
+    // Never-seeded database: fall back to the demo invoices.
+    return c.json({
+      data: demoSeedInvoices.filter((invoice) => {
+        if (allowedStudentIds && !allowedStudentIds.includes(invoice.studentId)) return false;
+        if (requestedStudent && invoice.studentId !== requestedStudent) return false;
+        if (month && invoice.month !== month) return false;
+        if (status && invoice.status !== status) return false;
+        return true;
+      }),
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat tagihan", message: String(err) }, 500);
+  }
 });
 
 // POST /api/finance/batch-generate (Admin TU)
@@ -164,8 +162,8 @@ financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
 
   const db = createDb(c.env.DB);
   const { month } = parsed.data;
-  let componentId = parsed.data.componentId ?? "fee_spp";
-  let amount = parsed.data.amount;
+  const componentId = parsed.data.componentId ?? "fee_spp";
+  const amount = parsed.data.amount;
 
   try {
     const activeYears = await db
@@ -174,22 +172,29 @@ financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
       .where(eq(academicYears.isActive, true))
       .limit(1);
 
-    const yearId = activeYears[0]?.id ?? demoAcademicYears.find((year) => year.isActive)?.id;
+    const yearId = activeYears[0]?.id;
+    if (!yearId) {
+      return c.json({ error: "Tahun ajaran aktif belum ditetapkan" }, 400);
+    }
 
     const components = await db
       .select()
       .from(feeComponents)
       .where(eq(feeComponents.id, componentId))
       .limit(1);
-    if (!amount) amount = components[0]?.amount ?? 350000;
+    const component = components[0];
+    if (!component) {
+      return c.json({ error: `Komponen biaya ${componentId} tidak ditemukan` }, 400);
+    }
+    const billedAmount = amount ?? component.amount;
 
     const enrollments = await db
       .select({ studentId: studentEnrollments.studentId })
       .from(studentEnrollments);
-    const studentIds =
-      enrollments.length > 0
-        ? Array.from(new Set(enrollments.map((enrollment) => enrollment.studentId)))
-        : demoEnrollments.map((enrollment) => enrollment.studentId);
+    const studentIds = Array.from(new Set(enrollments.map((enrollment) => enrollment.studentId)));
+    if (studentIds.length === 0) {
+      return c.json({ error: "Belum ada siswa terdaftar. Jalankan seeder demo." }, 400);
+    }
 
     const existing = await db
       .select({ studentId: invoices.studentId })
@@ -202,10 +207,10 @@ financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
       .map((studentId, index) => ({
         id: `INV-${month}-${String(Date.now()).slice(-5)}-${String(index + 1).padStart(2, "0")}`,
         studentId,
-        academicYearId: yearId ?? "ay_2026_2027",
+        academicYearId: yearId,
         feeComponentId: componentId,
         month,
-        amount: amount as number,
+        amount: billedAmount,
         status: "unpaid" as const,
         paymentProofUrl: null,
         paidAt: null,

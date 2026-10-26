@@ -44,6 +44,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 - **Deep modules**: mutasi multi-tabel, validasi state-machine, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest. Handler HTTP hanya menerjemahkan payload JSON ke pemanggilan modul. Referensi: `apps/api/src/inventory/circulation.ts` + `ledger.ts`.
 - **Otorisasi**: setiap rute menyatakan perannya. `apps/api/src/authz.test.ts` adalah matriks yang membuktikannya — tambahkan baris saat menambah rute.
 - **Data demo**: `packages/db/src/seed/demo.ts` adalah satu-satunya sumber dataset. Handler tidak boleh mengarang angka; kegagalan query mengembalikan error, bukan data palsu.
+- **Fallback demo**: dataset demo hanya boleh menjawab bila database belum pernah di-seed, diperiksa lewat `isEmptyDatabase(db)` di `apps/api/src/empty-database.ts`. Database terisi yang kosong untuk satu query (siswa tanpa presensi, bulan tanpa tagihan) mengembalikan hasil kosong, bukan angka demo. `apps/api/src/fallback.test.ts` mengunci kedua arah: query gagal → 500, database kosong → data demo.
 - **Dokumen demo**: `check:docs` memvalidasi setiap ID yang dikutip di `docs/demo/` terhadap dataset. Jangan menulis jumlah pemeriksaan secara hardcoded.
 
 ## Frontend

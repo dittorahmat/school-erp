@@ -28,6 +28,7 @@ import {
 } from "@school-erp/db";
 import { summarizeAttendance } from "../attendance/summary";
 import { calculateFinalScore, predicateFor } from "./score";
+import { isEmptyDatabase } from "../empty-database";
 
 const gradebookRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -46,18 +47,22 @@ const saveSchema = z.object({
     .min(1),
 });
 
+const demoAcademicYearId = demoAcademicYears.find((year) => year.isActive)?.id ?? "ay_2026_2027";
+
+/**
+ * A database failure must surface. The demo year answers only while the
+ * database is unseeded; a seeded database without an active year is a
+ * configuration error, not a reason to invent one.
+ */
 async function getActiveYearId(db: ReturnType<typeof createDb>) {
-  try {
-    const rows = await db
-      .select({ id: academicYears.id })
-      .from(academicYears)
-      .where(eq(academicYears.isActive, true))
-      .limit(1);
-    if (rows[0]) return rows[0].id;
-  } catch {
-    // fallback below
-  }
-  return demoAcademicYears.find((year) => year.isActive)?.id ?? "ay_2026_2027";
+  const rows = await db
+    .select({ id: academicYears.id })
+    .from(academicYears)
+    .where(eq(academicYears.isActive, true))
+    .limit(1);
+  if (rows[0]) return rows[0].id;
+  if (await isEmptyDatabase(db)) return demoAcademicYearId;
+  throw new Error("Tahun ajaran aktif belum ditetapkan");
 }
 
 async function canReadStudent(
@@ -69,19 +74,17 @@ async function canReadStudent(
   if (studentId === user.sub) return true;
   if (user.role !== "guardian") return false;
 
-  try {
-    const links = await db
-      .select({ id: guardianStudents.id })
-      .from(guardianStudents)
-      .where(
-        and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
-      )
-      .limit(1);
-    if (links.length > 0) return true;
-  } catch {
-    // fallback below
-  }
+  const links = await db
+    .select({ id: guardianStudents.id })
+    .from(guardianStudents)
+    .where(
+      and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
+    )
+    .limit(1);
+  if (links.length > 0) return true;
+  if (!(await isEmptyDatabase(db))) return false;
 
+  // Never-seeded database: fall back to the demo guardian links.
   const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
   return Boolean(
     demoGuardian &&
@@ -96,23 +99,18 @@ gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
   const db = createDb(c.env.DB);
   const subjectId = c.req.query("subjectId") ?? "sub_mat";
   const classroomId = c.req.query("classroomId") ?? "cls_10_mipa_1";
-  const yearId = await getActiveYearId(db);
 
-  let subject = demoSubjects.find((item) => item.id === subjectId);
-  let classroom = demoClassrooms.find((item) => item.id === classroomId);
-  let components = demoAssessmentComponents.filter(
-    (component) => component.subjectId === subjectId && component.academicYearId === yearId
-  );
-  let studentRows = demoEnrollments
-    .filter((enrollment) => enrollment.classroomId === classroomId)
-    .map((enrollment) => {
-      const user = demoUsers.find((candidate) => candidate.id === enrollment.studentId);
-      return { id: enrollment.studentId, name: user?.fullName ?? "Siswa" };
-    });
-  let gradeRows = demoStudentGrades;
+  let subject: { name: string } | undefined;
+  let classroom: { name: string; homeroomTeacherId?: string | null } | undefined;
+  let componentRows: Array<{ id: string; name: string; weightPercentage: number }>;
+  let studentRows: Array<{ id: string; name: string }>;
+  let gradeRows: Array<{ studentId: string; componentId: string; score: number }>;
+  let teacher = "Guru Pengampu";
 
   try {
-    const [subjectRows, classroomRows, componentRows, enrollmentRows, allGrades] =
+    const yearId = await getActiveYearId(db);
+
+    const [subjectsFound, classroomsFound, componentsFound, enrollmentsFound, gradesFound] =
       await Promise.all([
         db.select().from(subjects).where(eq(subjects.id, subjectId)).limit(1),
         db.select().from(classrooms).where(eq(classrooms.id, classroomId)).limit(1),
@@ -135,17 +133,49 @@ gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
         db.select().from(studentGrades),
       ]);
 
-    if (subjectRows[0]) subject = subjectRows[0];
-    if (classroomRows[0]) classroom = classroomRows[0];
-    if (componentRows.length > 0) components = componentRows;
-    if (enrollmentRows.length > 0) studentRows = enrollmentRows;
-    if (allGrades.length > 0) gradeRows = allGrades;
-  } catch {
-    // fallback data above
-  }
+    const empty = await isEmptyDatabase(db);
 
-  let teacher = "Guru Pengampu";
-  try {
+    subject = subjectsFound[0] ?? (empty ? demoSubjects.find((item) => item.id === subjectId) : undefined);
+    classroom =
+      classroomsFound[0] ?? (empty ? demoClassrooms.find((item) => item.id === classroomId) : undefined);
+
+    const componentsSource =
+      componentsFound.length > 0
+        ? componentsFound
+        : empty
+          ? demoAssessmentComponents.filter(
+              (component) =>
+                component.subjectId === subjectId && component.academicYearId === yearId
+            )
+          : [];
+    componentRows = componentsSource.map((component) => ({
+      id: component.id,
+      name: component.name,
+      weightPercentage: component.weightPercentage,
+    }));
+
+    studentRows =
+      enrollmentsFound.length > 0
+        ? enrollmentsFound
+        : empty
+          ? demoEnrollments
+              .filter((enrollment) => enrollment.classroomId === classroomId)
+              .map((enrollment) => ({
+                id: enrollment.studentId,
+                name:
+                  demoUsers.find((candidate) => candidate.id === enrollment.studentId)?.fullName ??
+                  "Siswa",
+              }))
+          : [];
+
+    gradeRows = (gradesFound.length > 0 ? gradesFound : empty ? demoStudentGrades : []).map(
+      (grade) => ({
+        studentId: grade.studentId,
+        componentId: grade.componentId,
+        score: grade.score,
+      })
+    );
+
     if (classroom?.homeroomTeacherId) {
       const teacherRows = await db
         .select({ fullName: users.fullName })
@@ -154,11 +184,11 @@ gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
         .limit(1);
       if (teacherRows[0]) teacher = teacherRows[0].fullName;
     }
-  } catch {
-    // keep default
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat buku nilai", message: String(err) }, 500);
   }
 
-  const componentList = components.map((component) => ({
+  const componentList = componentRows.map((component) => ({
     id: component.id,
     name: component.name,
     weight: component.weightPercentage,
@@ -203,9 +233,9 @@ gradebookRouter.post("/save", requireRoles("admin", "teacher"), async (c) => {
   }
 
   const db = createDb(c.env.DB);
-  const yearId = await getActiveYearId(db);
 
   try {
+    const yearId = await getActiveYearId(db);
     const components = await db
       .select()
       .from(assessmentComponents)
@@ -270,24 +300,27 @@ gradebookRouter.get("/report-card", async (c) => {
     return c.json({ error: "Forbidden: tidak berhak melihat rapor siswa ini" }, 403);
   }
 
-  const yearId = await getActiveYearId(db);
+  let yearId: string;
+  try {
+    yearId = await getActiveYearId(db);
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat tahun ajaran", message: String(err) }, 500);
+  }
 
-  let student: { id: string; fullName: string } | undefined = demoUsers.find(
-    (candidate) => candidate.id === studentId
-  );
-  let enrollment = demoEnrollments.find((item) => item.studentId === studentId);
-  let classroom = demoClassrooms.find((item) => item.id === enrollment?.classroomId);
-  let year = demoAcademicYears.find((item) => item.id === yearId);
-  let subjectRows = demoSubjects;
-  let componentRows = demoAssessmentComponents.filter(
-    (component) => component.academicYearId === yearId
-  );
-  let gradeRows = demoStudentGrades.filter((grade) => grade.studentId === studentId);
-  let attendanceRows: Array<{ status: string }> = demoAttendanceRecords.filter(
-    (record) => record.studentId === studentId
-  );
+  let student: { fullName: string } | undefined;
+  let classroomName = "-";
+  let yearLabel = "-";
+  let subjectRows: Array<{ id: string; name: string }> = [];
+  let componentRows: Array<{
+    id: string;
+    subjectId: string;
+    weightPercentage: number;
+  }> = [];
+  let gradeRows: Array<{ componentId: string; score: number }> = [];
+  let attendanceRows: Array<{ status: string }> = [];
 
   try {
+    const empty = await isEmptyDatabase(db);
     const [studentRows, enrollmentRows, yearRows, subjectsList, componentsList, gradesList] =
       await Promise.all([
         db.select().from(users).where(eq(users.id, studentId)).limit(1),
@@ -305,26 +338,56 @@ gradebookRouter.get("/report-card", async (c) => {
         db.select().from(studentGrades).where(eq(studentGrades.studentId, studentId)),
       ]);
 
-    if (studentRows[0]) student = studentRows[0];
-    if (enrollmentRows[0]) {
-      const classroomRows = await db
-        .select()
-        .from(classrooms)
-        .where(eq(classrooms.id, enrollmentRows[0].classroomId))
-        .limit(1);
-      if (classroomRows[0]) classroom = classroomRows[0];
-    }
-    if (yearRows[0]) year = yearRows[0];
-    if (subjectsList.length > 0) subjectRows = subjectsList;
-    if (componentsList.length > 0) componentRows = componentsList;
-    if (gradesList.length > 0) gradeRows = gradesList;
+    const enrollment = enrollmentRows[0];
+    const studentRow = studentRows[0] ?? (empty ? demoUsers.find((item) => item.id === studentId) : undefined);
+    const classroom = enrollment
+      ? (
+          await db
+            .select()
+            .from(classrooms)
+            .where(eq(classrooms.id, enrollment.classroomId))
+            .limit(1)
+        )[0]
+      : empty
+        ? demoClassrooms.find(
+            (item) =>
+              item.id ===
+              demoEnrollments.find((link) => link.studentId === studentId)?.classroomId
+          )
+        : undefined;
+    const year = yearRows[0] ?? (empty ? demoAcademicYears.find((item) => item.id === yearId) : undefined);
+
+    student = studentRow;
+    classroomName = classroom?.name ?? "-";
+    yearLabel = year
+      ? `${year.name} ${year.semester === "even" ? "Genap" : "Ganjil"}`
+      : "-";
+    subjectRows =
+      subjectsList.length > 0 ? subjectsList : empty ? demoSubjects : [];
+    componentRows =
+      componentsList.length > 0
+        ? componentsList
+        : empty
+          ? demoAssessmentComponents.filter(
+              (component) => component.academicYearId === yearId
+            )
+          : [];
+    gradeRows =
+      gradesList.length > 0
+        ? gradesList
+        : empty
+          ? demoStudentGrades.filter((grade) => grade.studentId === studentId)
+          : [];
 
     attendanceRows = await db
       .select({ status: attendanceRecords.status })
       .from(attendanceRecords)
       .where(eq(attendanceRecords.studentId, studentId));
-  } catch {
-    // fallback data above
+    if (attendanceRows.length === 0 && empty) {
+      attendanceRows = demoAttendanceRecords.filter((record) => record.studentId === studentId);
+    }
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat rapor", message: String(err) }, 500);
   }
 
   const reportSubjects = subjectRows
@@ -367,8 +430,8 @@ gradebookRouter.get("/report-card", async (c) => {
       id: studentId,
       name: student?.fullName ?? "Siswa",
       nisn: "-",
-      classroom: classroom?.name ?? "-",
-      academicYear: `${year?.name ?? "2026/2027"} ${year?.semester === "even" ? "Genap" : "Ganjil"}`,
+      classroom: classroomName,
+      academicYear: yearLabel,
     },
     subjects: reportSubjects,
     attendanceSummary: summarizeAttendance(attendanceRows),

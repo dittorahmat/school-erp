@@ -27,15 +27,15 @@ authRouter.post("/login", async (c) => {
   try {
     const foundUsers = await db.select().from(users).where(eq(users.username, username)).limit(1);
     user = foundUsers[0];
-  } catch {
-    // Fallback gracefully
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memverifikasi kredensial", message: String(err) }, 500);
   }
 
   if (!user) {
     // Bootstrap-only fallback: it may only answer while the database has no admin
     // row at all, i.e. before the first seed. On any populated deployment an
     // unknown username must fail closed instead of accepting a code-defined account.
-    let hasAdmin = false;
+    let hasAdmin: boolean;
     try {
       const admins = await db
         .select({ id: users.id })
@@ -43,8 +43,8 @@ authRouter.post("/login", async (c) => {
         .where(eq(users.role, "admin"))
         .limit(1);
       hasAdmin = admins.length > 0;
-    } catch {
-      hasAdmin = true;
+    } catch (err: unknown) {
+      return c.json({ error: "Gagal memeriksa akun bootstrap", message: String(err) }, 500);
     }
     if (hasAdmin) {
       return c.json({ error: "Username atau password salah" }, 401);

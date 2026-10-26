@@ -32,22 +32,23 @@ const jakartaMonth = () => {
   return `${year}-${month}`;
 };
 
+/** Today in Jakarta. Used when a seeded database has no attendance session yet. */
+const jakartaDate = () =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
 dashboardRouter.get("/summary", async (c) => {
   const db = createDb(c.env.DB);
 
-  let studentCount = demoUsers.filter((user) => user.role === "student").length;
-  let classroomCount = demoClassrooms.length;
-  let latestDate = "2026-10-23";
-  let attendance = summarizeAttendance(
-    demoAttendanceRecords.filter((record) => record.sessionId.includes("2026-10-23"))
-  );
-  let invoiceRows: Array<{ month: string | null; amount: number; status: string }> = demoInvoices.map(
-    (invoice) => ({
-      month: invoice.month ?? null,
-      amount: invoice.amount,
-      status: invoice.status ?? "unpaid",
-    })
-  );
+  let studentCount = 0;
+  let classroomCount = 0;
+  let latestDate = jakartaDate();
+  let attendance = summarizeAttendance([]);
+  let invoiceRows: Array<{ month: string | null; amount: number; status: string }> = [];
 
   try {
     const [studentRows, classroomRows, latestSessions, allInvoices] = await Promise.all([
@@ -61,21 +62,40 @@ dashboardRouter.get("/summary", async (c) => {
       db.select({ month: invoices.month, amount: invoices.amount, status: invoices.status }).from(invoices),
     ]);
 
-    if (studentRows.length > 0) studentCount = studentRows.length;
-    if (classroomRows.length > 0) classroomCount = classroomRows.length;
-    if (allInvoices.length > 0) invoiceRows = allInvoices;
+    // No row in any table the dashboard reads: the database was never seeded.
+    const empty =
+      studentRows.length === 0 &&
+      classroomRows.length === 0 &&
+      latestSessions.length === 0 &&
+      allInvoices.length === 0;
 
-    if (latestSessions[0]) {
-      latestDate = latestSessions[0].date;
+    if (empty) {
+      studentCount = demoUsers.filter((user) => user.role === "student").length;
+      classroomCount = demoClassrooms.length;
+      latestDate = "2026-10-23";
+      attendance = summarizeAttendance(
+        demoAttendanceRecords.filter((record) => record.sessionId.includes(latestDate))
+      );
+      invoiceRows = demoInvoices.map((invoice) => ({
+        month: invoice.month ?? null,
+        amount: invoice.amount,
+        status: invoice.status ?? "unpaid",
+      }));
+    } else {
+      studentCount = studentRows.length;
+      classroomCount = classroomRows.length;
+      invoiceRows = allInvoices;
+
+      if (latestSessions[0]) latestDate = latestSessions[0].date;
       const records = await db
         .select({ status: attendanceRecords.status })
         .from(attendanceRecords)
         .innerJoin(attendanceSessions, eq(attendanceRecords.sessionId, attendanceSessions.id))
         .where(eq(attendanceSessions.date, latestDate));
-      if (records.length > 0) attendance = summarizeAttendance(records);
+      attendance = summarizeAttendance(records);
     }
-  } catch {
-    // fallback data above
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat ringkasan dashboard", message: String(err) }, 500);
   }
 
   const currentMonth = jakartaMonth();
