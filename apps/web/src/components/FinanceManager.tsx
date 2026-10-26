@@ -13,6 +13,10 @@ import {
   X,
   FileText,
   DollarSign,
+  BookOpen,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Wallet,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -45,6 +49,26 @@ interface StudentOption {
   currentClassroom?: string | null;
 }
 
+interface CashTransaction {
+  id: string;
+  date: string;
+  type: "debit" | "credit";
+  category: string;
+  amount: number;
+  description: string;
+  invoiceId?: string | null;
+  createdBy?: string | null;
+  createdByName?: string | null;
+  createdAt: string;
+  runningBalance: number;
+}
+
+interface CashSummary {
+  totalDebit: number;
+  totalCredit: number;
+  balance: number;
+}
+
 const formatDate = (value?: string | null) => {
   if (!value) return "-";
   const normalized = value.length === 7 ? `${value}-15` : value;
@@ -60,7 +84,7 @@ export function FinanceManager() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  const [activeTab, setActiveTab] = useState<"invoices" | "tariffs">("invoices");
+  const [activeTab, setActiveTab] = useState<"invoices" | "tariffs" | "ledger">("invoices");
 
   // Invoices state
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -100,6 +124,25 @@ export function FinanceManager() {
   const [batchMonth, setBatchMonth] = useState(new Date().toISOString().slice(0, 7));
   const [generatingBatch, setGeneratingBatch] = useState(false);
 
+  // Cash Ledger state
+  const [cashTransactions, setCashTransactions] = useState<CashTransaction[]>([]);
+  const [cashSummary, setCashSummary] = useState<CashSummary>({
+    totalDebit: 0,
+    totalCredit: 0,
+    balance: 0,
+  });
+  const [loadingCash, setLoadingCash] = useState(false);
+  const [submittingCash, setSubmittingCash] = useState(false);
+  const [deletingCashId, setDeletingCashId] = useState<string | null>(null);
+  const [ledgerFilter, setLedgerFilter] = useState<"all" | "manual" | "spp">("all");
+  const [newCashTx, setNewCashTx] = useState({
+    date: new Date().toISOString().slice(0, 10),
+    type: "debit" as "debit" | "credit",
+    category: "Operasional",
+    amount: "",
+    description: "",
+  });
+
   const loadInvoices = async () => {
     try {
       const res = await fetch("/api/finance/invoices");
@@ -125,7 +168,7 @@ export function FinanceManager() {
         setFeeComponents(json.data || []);
       }
     } catch {
-      // silent
+      // fallback silent
     } finally {
       setLoadingComponents(false);
     }
@@ -139,15 +182,33 @@ export function FinanceManager() {
         setStudents(json.data || []);
       }
     } catch {
+      // fallback silent
+    }
+  };
+
+  const loadCashTransactions = async () => {
+    if (!isAdmin) return;
+    setLoadingCash(true);
+    try {
+      const res = await fetch("/api/finance/cash-transactions");
+      if (res.ok) {
+        const json = await res.json();
+        setCashTransactions(json.data || []);
+        setCashSummary(json.summary || { totalDebit: 0, totalCredit: 0, balance: 0 });
+      }
+    } catch {
       // silent
+    } finally {
+      setLoadingCash(false);
     }
   };
 
   useEffect(() => {
     loadInvoices();
-    loadFeeComponents();
     if (isAdmin) {
+      loadFeeComponents();
       loadStudents();
+      loadCashTransactions();
     }
   }, [isAdmin]);
 
@@ -187,13 +248,13 @@ export function FinanceManager() {
     }
   };
 
-  const handleVerify = async (invoice: Invoice) => {
+  const handleVerify = async (invoice: Invoice, status: "paid" | "unpaid") => {
     setError(null);
     try {
       const res = await fetch("/api/finance/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id, status: "paid" }),
+        body: JSON.stringify({ invoiceId: invoice.id, status }),
       });
       const json = await res.json().catch(() => null);
 
@@ -202,108 +263,68 @@ export function FinanceManager() {
         return;
       }
 
-      setMessage(`Tagihan ${invoice.id} telah diverifikasi lunas.`);
+      setMessage(`Status tagihan ${invoice.id} berhasil diubah menjadi ${status === "paid" ? "Lunas" : "Belum Bayar"}.`);
       await loadInvoices();
+      if (isAdmin) {
+        await loadCashTransactions();
+      }
     } catch {
       setError("Gagal memverifikasi tagihan");
     }
   };
 
-  // Batch generate
-  const handleBatchGenerate = async () => {
-    setError(null);
-    setMessage(null);
-    setGeneratingBatch(true);
-    try {
-      const res = await fetch("/api/finance/batch-generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ month: batchMonth }),
-      });
-      const json = await res.json().catch(() => null);
-      if (!res.ok) {
-        setError(json?.error || "Gagal menerbitkan tagihan massal");
-        return;
-      }
-      setMessage(
-        `${json.message || "Berhasil menerbitkan tagihan"} (${json.generatedCount ?? 0} tagihan baru dibuat, ${json.skippedCount ?? 0} dilewati/sudah ada).`
-      );
-      await loadInvoices();
-    } catch {
-      setError("Gagal menerbitkan tagihan massal");
-    } finally {
-      setGeneratingBatch(false);
-    }
-  };
-
-  // Open modal fee component
-  const openComponentModal = (comp?: FeeComponent) => {
-    if (comp) {
-      setEditingComponent(comp);
-      setCompName(comp.name);
-      setCompAmount(String(comp.amount));
-      setCompGradeLevel(comp.gradeLevel ? String(comp.gradeLevel) : "all");
-    } else {
-      setEditingComponent(null);
-      setCompName("");
-      setCompAmount("");
-      setCompGradeLevel("all");
-    }
+  const handleOpenCreateComponent = () => {
+    setEditingComponent(null);
+    setCompName("");
+    setCompAmount("");
+    setCompGradeLevel("all");
     setIsComponentModalOpen(true);
   };
 
-  // Save fee component
+  const handleOpenEditComponent = (comp: FeeComponent) => {
+    setEditingComponent(comp);
+    setCompName(comp.name);
+    setCompAmount(String(comp.amount));
+    setCompGradeLevel(comp.gradeLevel ? String(comp.gradeLevel) : "all");
+    setIsComponentModalOpen(true);
+  };
+
   const handleSaveComponent = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setMessage(null);
-    const amountNum = parseInt(compAmount, 10);
-    if (!compName.trim()) {
-      setError("Nama komponen biaya wajib diisi");
-      return;
-    }
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setError("Nominal tarif harus berupa angka lebih besar dari 0");
+    const amountNum = Number(compAmount);
+    if (!compName.trim() || isNaN(amountNum) || amountNum <= 0) {
+      setError("Nama komponen dan nominal tarif (> 0) wajib diisi");
       return;
     }
 
-    const gradeLevel = compGradeLevel === "all" ? null : parseInt(compGradeLevel, 10);
     setSubmittingComponent(true);
-
+    setError(null);
     try {
-      if (editingComponent) {
-        const res = await fetch(`/api/finance/fee-components/${editingComponent.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: compName.trim(),
-            amount: amountNum,
-            gradeLevel,
-          }),
-        });
-        const json = await res.json().catch(() => null);
-        if (!res.ok) {
-          setError(json?.error || "Gagal memperbarui tarif komponen biaya");
-          return;
-        }
-        setMessage(`Komponen biaya ${compName.trim()} berhasil diperbarui`);
-      } else {
-        const res = await fetch("/api/finance/fee-components", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: compName.trim(),
-            amount: amountNum,
-            gradeLevel,
-          }),
-        });
-        const json = await res.json().catch(() => null);
-        if (!res.ok) {
-          setError(json?.error || "Gagal menambahkan komponen biaya");
-          return;
-        }
-        setMessage(`Komponen biaya ${compName.trim()} berhasil ditambahkan`);
+      const payload = {
+        name: compName.trim(),
+        amount: amountNum,
+        gradeLevel: compGradeLevel === "all" ? null : Number(compGradeLevel),
+      };
+
+      const res = editingComponent
+        ? await fetch(`/api/finance/fee-components/${editingComponent.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/finance/fee-components", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error || "Gagal menyimpan komponen biaya");
+        return;
       }
+
+      setMessage(editingComponent ? "Komponen biaya berhasil diperbarui." : "Komponen biaya baru berhasil ditambahkan.");
       setIsComponentModalOpen(false);
       await loadFeeComponents();
     } catch {
@@ -313,11 +334,9 @@ export function FinanceManager() {
     }
   };
 
-  // Delete component
   const handleDeleteComponent = async () => {
     if (!deletingComponent) return;
     setError(null);
-    setMessage(null);
     try {
       const res = await fetch(`/api/finance/fee-components/${deletingComponent.id}`, {
         method: "DELETE",
@@ -327,7 +346,8 @@ export function FinanceManager() {
         setError(json?.error || "Gagal menghapus komponen biaya");
         return;
       }
-      setMessage(`Komponen biaya "${deletingComponent.name}" berhasil dihapus`);
+
+      setMessage("Komponen biaya berhasil dihapus.");
       setDeletingComponent(null);
       await loadFeeComponents();
     } catch {
@@ -335,52 +355,32 @@ export function FinanceManager() {
     }
   };
 
-  // Open manual invoice modal
-  const openManualInvoiceModal = () => {
+  const handleOpenManualInvoice = () => {
     setSelectedStudentId(students[0]?.id || "");
-    const defaultComp = feeComponents[0];
-    if (defaultComp) {
-      setSelectedFeeCompId(defaultComp.id);
-      setInvoiceAmount(String(defaultComp.amount));
-    } else {
-      setSelectedFeeCompId("");
-      setInvoiceAmount("");
-    }
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    setInvoiceMonth(currentMonth);
-    setInvoiceDueDate(`${currentMonth}-15`);
+    const defaultFee = feeComponents[0];
+    setSelectedFeeCompId(defaultFee?.id || "");
+    setInvoiceAmount(defaultFee ? String(defaultFee.amount) : "");
     setIsManualInvoiceModalOpen(true);
   };
 
-  // Handle fee component select in manual invoice modal
-  const handleSelectCompInInvoice = (compId: string) => {
-    setSelectedFeeCompId(compId);
-    const found = feeComponents.find((c) => c.id === compId);
-    if (found) {
-      setInvoiceAmount(String(found.amount));
+  const handleFeeComponentChange = (feeId: string) => {
+    setSelectedFeeCompId(feeId);
+    const comp = feeComponents.find((c) => c.id === feeId);
+    if (comp) {
+      setInvoiceAmount(String(comp.amount));
     }
   };
 
-  // Save manual invoice
   const handleCreateManualInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setMessage(null);
-    const amountNum = parseInt(invoiceAmount, 10);
-    if (!selectedStudentId) {
-      setError("Pilih siswa tujuan tagihan");
-      return;
-    }
-    if (!selectedFeeCompId) {
-      setError("Pilih komponen tarif tagihan");
-      return;
-    }
-    if (isNaN(amountNum) || amountNum <= 0) {
-      setError("Nominal tagihan harus berupa angka lebih besar dari 0");
+    const amountNum = Number(invoiceAmount);
+    if (!selectedStudentId || !selectedFeeCompId || isNaN(amountNum) || amountNum <= 0) {
+      setError("Mohon lengkapi data siswa, komponen biaya, dan nominal valid");
       return;
     }
 
     setSubmittingInvoice(true);
+    setError(null);
     try {
       const res = await fetch("/api/finance/invoices", {
         method: "POST",
@@ -389,16 +389,18 @@ export function FinanceManager() {
           studentId: selectedStudentId,
           feeComponentId: selectedFeeCompId,
           amount: amountNum,
-          month: invoiceMonth || null,
-          dueDate: invoiceDueDate || null,
+          month: invoiceMonth,
+          dueDate: invoiceDueDate,
         }),
       });
+
       const json = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(json?.error || "Gagal membuat tagihan manual");
+        setError(json?.error || "Gagal membuat tagihan");
         return;
       }
-      setMessage(`Tagihan ${json.data?.id || ""} berhasil dibuat untuk siswa.`);
+
+      setMessage("Tagihan perseorangan berhasil dibuat.");
       setIsManualInvoiceModalOpen(false);
       await loadInvoices();
     } catch {
@@ -408,89 +410,226 @@ export function FinanceManager() {
     }
   };
 
+  const handleBatchGenerate = async () => {
+    if (!batchMonth) return;
+    setGeneratingBatch(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/finance/batch-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: batchMonth }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error || "Gagal memproses tagihan otomatis");
+        return;
+      }
+
+      setMessage(json?.message || `Tagihan periode ${batchMonth} berhasil digenerate.`);
+      await loadInvoices();
+    } catch {
+      setError("Gagal memproses tagihan otomatis");
+    } finally {
+      setGeneratingBatch(false);
+    }
+  };
+
+  const handleCreateCashTransaction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = Number(newCashTx.amount);
+    if (!newCashTx.date || !newCashTx.category || !newCashTx.description || isNaN(amountNum) || amountNum <= 0) {
+      setError("Harap isi semua field transaksi kas dengan benar");
+      return;
+    }
+
+    setSubmittingCash(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/finance/cash-transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date: newCashTx.date,
+          type: newCashTx.type,
+          category: newCashTx.category,
+          amount: amountNum,
+          description: newCashTx.description,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error || "Gagal mencatat transaksi kas");
+        return;
+      }
+
+      setMessage("Transaksi kas berhasil dicatat.");
+      setNewCashTx({
+        date: new Date().toISOString().slice(0, 10),
+        type: "debit",
+        category: "Operasional",
+        amount: "",
+        description: "",
+      });
+      await loadCashTransactions();
+    } catch {
+      setError("Gagal mencatat transaksi kas");
+    } finally {
+      setSubmittingCash(false);
+    }
+  };
+
+  const handleDeleteCashTransaction = async (id: string) => {
+    setDeletingCashId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/finance/cash-transactions/${id}`, {
+        method: "DELETE",
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error || "Gagal menghapus transaksi kas");
+        return;
+      }
+
+      setMessage("Transaksi kas berhasil dihapus.");
+      await loadCashTransactions();
+    } catch {
+      setError("Gagal menghapus transaksi kas");
+    } finally {
+      setDeletingCashId(null);
+    }
+  };
+
   return (
     <div className="space-y-6" data-ui>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-ink flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-accent" /> Keuangan & Tagihan SPP
+            <CreditCard className="w-4 h-4 text-accent" /> Keuangan, Tagihan SPP & Buku Kas
           </h3>
           <p className="text-xs text-muted mt-0.5">
-            Kelola tagihan pembayaran siswa, tarif komponen biaya, dan verifikasi bukti transfer
+            Kelola tagihan pembayaran siswa, tarif komponen biaya, dan mutasi kas operasional sekolah
           </p>
         </div>
 
-        {/* Tab switchers */}
-        <div className="flex items-center gap-1 bg-subtle p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab("invoices")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-              activeTab === "invoices"
-                ? "bg-surface text-ink font-semibold"
-                : "text-muted hover:text-ink"
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5" /> Daftar Tagihan & Pembayaran
-          </button>
-          <button
-            onClick={() => setActiveTab("tariffs")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-              activeTab === "tariffs"
-                ? "bg-surface text-ink font-semibold"
-                : "text-muted hover:text-ink"
-            }`}
-          >
-            <DollarSign className="w-3.5 h-3.5" /> Komponen Biaya / Tarif
-          </button>
-        </div>
+        {/* Tab Switcher */}
+        {isAdmin && (
+          <div className="flex items-center gap-1 p-1 bg-subtle rounded-lg self-start sm:self-auto">
+            <button
+              onClick={() => setActiveTab("invoices")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                activeTab === "invoices"
+                  ? "bg-white text-ink shadow-xs"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              <FileText className="w-3.5 h-3.5" /> Daftar Tagihan
+            </button>
+            <button
+              onClick={() => setActiveTab("tariffs")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                activeTab === "tariffs"
+                  ? "bg-white text-ink shadow-xs"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5" /> Komponen Biaya / Tarif
+            </button>
+            <button
+              onClick={() => setActiveTab("ledger")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition ${
+                activeTab === "ledger"
+                  ? "bg-white text-ink shadow-xs"
+                  : "text-muted hover:text-ink"
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" /> Buku Kas & Mutasi
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Alerts */}
       {message && (
-        <div className="p-3 bg-success-soft text-success-ink text-xs rounded flex items-center gap-2">
-          <Check className="w-4 h-4 shrink-0" /> {message}
+        <div className="p-3 bg-success-soft text-success-ink text-xs rounded flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4" /> {message}
+          </div>
+          <button onClick={() => setMessage(null)} className="p-1 text-success-ink/70 hover:text-success-ink">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" /> {error}
+        <div className="p-3 bg-danger-soft text-danger-ink text-xs rounded flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" /> {error}
+          </div>
+          <button onClick={() => setError(null)} className="p-1 text-danger-ink/70 hover:text-danger-ink">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
+      {/* TAB 1: INVOICES */}
       {activeTab === "invoices" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h4 className="text-sm font-semibold text-ink">Semua Tagihan Siswa</h4>
-            {isAdmin && (
-              <button
-                onClick={openManualInvoiceModal}
-                className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
-              >
-                <Plus className="w-3.5 h-3.5" /> Buat Tagihan Manual
-              </button>
-            )}
-          </div>
+          {isAdmin && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-white rounded-lg">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenManualInvoice}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-strong transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Buat Tagihan Manual
+                </button>
+              </div>
+
+              {/* Batch billing controls */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted">Generate Massal:</span>
+                <input
+                  type="month"
+                  value={batchMonth}
+                  onChange={(e) => setBatchMonth(e.target.value)}
+                  className="px-2.5 py-1 text-xs bg-ground rounded text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <button
+                  onClick={handleBatchGenerate}
+                  disabled={generatingBatch}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded bg-subtle text-ink hover:bg-ground transition disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${generatingBatch ? "animate-spin" : ""}`} />
+                  {generatingBatch ? "Memproses..." : "Terbitkan Tagihan Massal"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="p-8 text-center text-xs text-muted">Memuat tagihan...</div>
           ) : invoices.length === 0 ? (
-            <div className="p-8 text-center text-xs text-muted bg-surface rounded-lg">
-              Belum ada tagihan.
+            <div className="p-8 text-center text-xs text-muted bg-white rounded-lg">
+              Belum ada tagihan pada sistem.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {invoices.map((invoice) => (
-                <div key={invoice.id} className="p-5 bg-surface rounded-lg flex flex-col justify-between">
+                <div key={invoice.id} className="p-5 bg-white rounded-lg flex flex-col justify-between">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <span className="text-xs font-semibold text-muted">{invoice.id}</span>
-                      <h4 className="font-semibold text-sm text-ink mt-0.5">
-                        {invoice.componentName}
-                      </h4>
+                      <h4 className="font-semibold text-sm text-ink mt-0.5">{invoice.componentName}</h4>
                       <p className="text-xs text-muted mt-1">
-                        Siswa: {invoice.studentName}
-                        {invoice.classroom ? ` (${invoice.classroom})` : ""} &bull; Jatuh Tempo:{" "}
-                        {formatDate(invoice.dueDate)}
+                        Siswa: <strong className="text-ink">{invoice.studentName}</strong>
+                        {invoice.classroom ? ` (${invoice.classroom})` : ""} &bull; Periode: {invoice.month || "-"}
+                      </p>
+                      <p className="text-[11px] text-muted-soft mt-0.5">
+                        Jatuh Tempo: {formatDate(invoice.dueDate)}
                       </p>
                     </div>
 
@@ -522,25 +661,57 @@ export function FinanceManager() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {invoice.status === "unpaid" && (
+                      {invoice.paymentProofUrl && (
+                        <a
+                          href={invoice.paymentProofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-2.5 py-1 text-xs font-medium text-accent hover:bg-accent-soft rounded transition"
+                        >
+                          Lihat Bukti
+                        </a>
+                      )}
+
+                      {/* User upload proof */}
+                      {invoice.status === "unpaid" && !isAdmin && (
                         <button
                           onClick={() => {
                             setSelectedInvoice(invoice);
                             setFile(null);
-                            setMessage(null);
-                            setError(null);
                           }}
-                          className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-strong transition"
                         >
                           <UploadCloud className="w-3.5 h-3.5" /> Unggah Bukti
                         </button>
                       )}
-                      {invoice.status === "pending" && isAdmin && (
+
+                      {/* Admin verify action */}
+                      {isAdmin && invoice.status === "pending" && (
                         <button
-                          onClick={() => handleVerify(invoice)}
-                          className="inline-flex items-center gap-1.5 bg-success hover:bg-success-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
+                          onClick={() => handleVerify(invoice, "paid")}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded bg-success-soft text-success-ink hover:bg-success hover:text-white transition"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Verifikasi Lunas
+                          <Check className="w-3.5 h-3.5" /> Verifikasi Lunas
+                        </button>
+                      )}
+
+                      {isAdmin && invoice.status === "unpaid" && (
+                        <button
+                          onClick={() => handleVerify(invoice, "paid")}
+                          className="px-2.5 py-1 text-xs font-medium text-muted hover:text-success hover:bg-success-soft rounded transition"
+                          title="Tandai langsung lunas"
+                        >
+                          Tandai Lunas
+                        </button>
+                      )}
+
+                      {isAdmin && invoice.status === "paid" && (
+                        <button
+                          onClick={() => handleVerify(invoice, "unpaid")}
+                          className="px-2.5 py-1 text-xs font-medium text-muted hover:text-danger hover:bg-danger-soft rounded transition"
+                          title="Batalkan status lunas"
+                        >
+                          Batalkan Lunas
                         </button>
                       )}
                     </div>
@@ -552,137 +723,316 @@ export function FinanceManager() {
         </div>
       )}
 
-      {activeTab === "tariffs" && (
-        <div className="space-y-6">
-          {/* Pemicu tagihan bulanan batch */}
-          {isAdmin && (
-            <div className="p-4 bg-surface rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h4 className="text-sm font-semibold text-ink flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-accent" /> Generate Tagihan Otomatis
-                </h4>
-                <p className="text-xs text-muted mt-0.5">
-                  Terbitkan tagihan SPP bulanan ke seluruh siswa aktif yang terdaftar untuk periode bulan yang dipilih
-                </p>
-              </div>
+      {/* TAB 2: TARIFFS & FEE COMPONENTS */}
+      {activeTab === "tariffs" && isAdmin && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-white rounded-lg">
+            <div>
+              <h4 className="text-sm font-bold text-ink">Master Tarif & Komponen Biaya</h4>
+              <p className="text-xs text-muted mt-0.5">
+                Konfigurasi besaran tagihan reguler seperti SPP, Uang Kegiatan, dan komponen lainnya
+              </p>
+            </div>
+            <button
+              onClick={handleOpenCreateComponent}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-accent text-white hover:bg-accent-strong transition"
+            >
+              <Plus className="w-3.5 h-3.5" /> Tambah Komponen Tarif
+            </button>
+          </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="month"
-                  value={batchMonth}
-                  onChange={(e) => setBatchMonth(e.target.value)}
-                  className="px-3 py-1.5 text-xs bg-subtle rounded text-ink focus:outline-none"
-                />
-                <button
-                  onClick={handleBatchGenerate}
-                  disabled={generatingBatch || !batchMonth}
-                  className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${generatingBatch ? "animate-spin" : ""}`} />
-                  {generatingBatch ? "Menerbitkan..." : "Generate Tagihan"}
-                </button>
-              </div>
+          {loadingComponents ? (
+            <div className="p-8 text-center text-xs text-muted">Memuat komponen tarif...</div>
+          ) : feeComponents.length === 0 ? (
+            <div className="p-8 text-center text-xs text-muted bg-white rounded-lg">
+              Belum ada komponen biaya/tarif yang dikonfigurasi.
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg overflow-hidden">
+              <table className="w-full text-left text-xs text-ink">
+                <thead className="bg-subtle text-[11px] font-semibold text-muted uppercase tracking-wider">
+                  <tr>
+                    <th className="px-4 py-3">Nama Komponen</th>
+                    <th className="px-4 py-3">ID Komponen</th>
+                    <th className="px-4 py-3 text-right">Nominal Tarif</th>
+                    <th className="px-4 py-3">Tingkat Kelas</th>
+                    <th className="px-4 py-3 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {feeComponents.map((comp) => (
+                    <tr key={comp.id} className="hover:bg-ground transition">
+                      <td className="px-4 py-3 font-semibold text-ink">{comp.name}</td>
+                      <td className="px-4 py-3 text-muted">{comp.id}</td>
+                      <td className="px-4 py-3 text-right font-bold tabular-nums text-ink">
+                        Rp {comp.amount.toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-4 py-3 text-muted">
+                        {comp.gradeLevel ? `Kelas ${comp.gradeLevel}` : "Semua Tingkat"}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="inline-flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleOpenEditComponent(comp)}
+                            className="p-1 text-muted hover:text-accent hover:bg-accent-soft rounded transition"
+                            title="Sunting Tarif"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingComponent(comp)}
+                            className="p-1 text-muted hover:text-danger hover:bg-danger-soft rounded transition"
+                            title="Hapus Komponen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
+        </div>
+      )}
 
-          {/* Tabel Komponen Biaya */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
+      {/* TAB 3: CASH LEDGER */}
+      {activeTab === "ledger" && isAdmin && (
+        <div className="space-y-6">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="p-4 bg-white rounded-lg shadow-xs flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-semibold text-ink">Master Komponen Tarif & Biaya</h4>
-                <p className="text-xs text-muted">
-                  Konfigurasi jenis tarif (SPP, Kegiatan, Ujian) beserta nominal standar rupiah
+                <span className="text-[11px] font-semibold uppercase text-muted">Total Pemasukan (Debit)</span>
+                <p className="text-lg font-bold text-success tabular-nums mt-0.5">
+                  Rp {cashSummary.totalDebit.toLocaleString("id-ID")}
                 </p>
               </div>
-              {isAdmin && (
-                <button
-                  onClick={() => openComponentModal()}
-                  className="inline-flex items-center gap-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-medium px-3.5 py-1.5 rounded transition"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Komponen Tarif
-                </button>
-              )}
+              <span className="p-2.5 bg-success-soft text-success rounded-lg">
+                <ArrowDownLeft className="w-5 h-5" />
+              </span>
             </div>
 
-            {loadingComponents ? (
-              <div className="p-8 text-center text-xs text-muted">Memuat komponen biaya...</div>
-            ) : feeComponents.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted bg-surface rounded-lg">
-                Belum ada komponen biaya yang terdaftar.
+            <div className="p-4 bg-white rounded-lg shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold uppercase text-muted">Total Pengeluaran (Kredit)</span>
+                <p className="text-lg font-bold text-danger tabular-nums mt-0.5">
+                  Rp {cashSummary.totalCredit.toLocaleString("id-ID")}
+                </p>
               </div>
+              <span className="p-2.5 bg-danger-soft text-danger rounded-lg">
+                <ArrowUpRight className="w-5 h-5" />
+              </span>
+            </div>
+
+            <div className="p-4 bg-white rounded-lg shadow-xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-semibold uppercase text-muted">Saldo Kas Akhir</span>
+                <p className="text-lg font-bold text-ink tabular-nums mt-0.5">
+                  Rp {cashSummary.balance.toLocaleString("id-ID")}
+                </p>
+              </div>
+              <span className="p-2.5 bg-accent-soft text-accent rounded-lg">
+                <Wallet className="w-5 h-5" />
+              </span>
+            </div>
+          </div>
+
+          {/* Form Tambah Transaksi Kas */}
+          <div className="p-5 bg-white rounded-lg space-y-4">
+            <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Plus className="w-4 h-4 text-accent" /> Catat Transaksi Kas Manual
+            </h4>
+
+            <form onSubmit={handleCreateCashTransaction} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase mb-1">Tanggal</label>
+                <input
+                  type="date"
+                  value={newCashTx.date}
+                  onChange={(e) => setNewCashTx({ ...newCashTx, date: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase mb-1">Jenis Arus</label>
+                <select
+                  value={newCashTx.type}
+                  onChange={(e) => setNewCashTx({ ...newCashTx, type: e.target.value as "debit" | "credit" })}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="debit">Pemasukan (Debit)</option>
+                  <option value="credit">Pengeluaran (Kredit)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase mb-1">Kategori</label>
+                <input
+                  type="text"
+                  placeholder="e.g. ATK, Donasi, Listrik"
+                  value={newCashTx.category}
+                  onChange={(e) => setNewCashTx({ ...newCashTx, category: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-muted uppercase mb-1">Nominal (Rp)</label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  min={1}
+                  value={newCashTx.amount}
+                  onChange={(e) => setNewCashTx({ ...newCashTx, amount: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent tabular-nums"
+                  required
+                />
+              </div>
+
+              <div>
+                <button
+                  type="submit"
+                  disabled={submittingCash}
+                  className="w-full px-4 py-1.5 bg-accent hover:bg-accent-strong text-white text-xs font-semibold rounded transition disabled:opacity-50"
+                >
+                  {submittingCash ? "Menyimpan..." : "Simpan Transaksi"}
+                </button>
+              </div>
+
+              <div className="sm:col-span-2 lg:col-span-5">
+                <label className="block text-[11px] font-semibold text-muted uppercase mb-1">Deskripsi / Keterangan</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Pembelian spidol whiteboard untuk ruang guru"
+                  value={newCashTx.description}
+                  onChange={(e) => setNewCashTx({ ...newCashTx, description: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Tabel Buku Kas */}
+          <div className="bg-white rounded-lg overflow-hidden space-y-3">
+            <div className="p-4 flex items-center justify-between border-b border-border">
+              <h4 className="text-sm font-bold text-ink">Buku Kas & Riwayat Mutasi</h4>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-muted">Filter:</span>
+                <select
+                  value={ledgerFilter}
+                  onChange={(e) => setLedgerFilter(e.target.value as "all" | "manual" | "spp")}
+                  className="px-2.5 py-1 bg-ground rounded text-ink text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="all">Semua Transaksi</option>
+                  <option value="spp">Otomatis SPP Saja</option>
+                  <option value="manual">Manual / Operasional</option>
+                </select>
+              </div>
+            </div>
+
+            {loadingCash ? (
+              <div className="p-8 text-center text-xs text-muted">Memuat mutasi buku kas...</div>
+            ) : cashTransactions.length === 0 ? (
+              <div className="p-8 text-center text-xs text-muted">Belum ada transaksi kas yang dicatat.</div>
             ) : (
-              <div className="bg-surface rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-ink">
-                    <thead className="bg-subtle text-ink-muted uppercase">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Nama Komponen Tarif</th>
-                        <th className="px-4 py-3 font-semibold">Target Tingkat</th>
-                        <th className="px-4 py-3 font-semibold">Nominal Standar</th>
-                        {isAdmin && (
-                          <th className="px-4 py-3 font-semibold text-right">Aksi</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {feeComponents.map((comp) => (
-                        <tr key={comp.id} className="hover:bg-subtle-warm transition">
-                          <td className="px-4 py-3 font-medium text-ink">
-                            <div>{comp.name}</div>
-                            <span className="text-[11px] text-muted">{comp.id}</span>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-ink">
+                  <thead className="bg-subtle text-[11px] font-semibold text-muted uppercase tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">Tanggal</th>
+                      <th className="px-4 py-3">Tipe</th>
+                      <th className="px-4 py-3">Kategori</th>
+                      <th className="px-4 py-3">Keterangan</th>
+                      <th className="px-4 py-3 text-right">Debit (Masuk)</th>
+                      <th className="px-4 py-3 text-right">Kredit (Keluar)</th>
+                      <th className="px-4 py-3 text-right">Saldo Kas</th>
+                      <th className="px-4 py-3 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {cashTransactions
+                      .filter((tx) => {
+                        if (ledgerFilter === "spp") return Boolean(tx.invoiceId);
+                        if (ledgerFilter === "manual") return !tx.invoiceId;
+                        return true;
+                      })
+                      .map((tx) => (
+                        <tr key={tx.id} className="hover:bg-ground transition">
+                          <td className="px-4 py-3 whitespace-nowrap text-muted">{formatDate(tx.date)}</td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            {tx.type === "debit" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-success-soft text-success-ink">
+                                <ArrowDownLeft className="w-3 h-3" /> Debit
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-danger-soft text-danger-ink">
+                                <ArrowUpRight className="w-3 h-3" /> Kredit
+                              </span>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-muted">
-                            {comp.gradeLevel ? `Kelas ${comp.gradeLevel}` : "Semua Tingkat"}
+                          <td className="px-4 py-3 whitespace-nowrap font-medium text-ink-soft">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>{tx.category}</span>
+                              {tx.invoiceId && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-accent-soft text-accent-ink">
+                                  Otomatis SPP
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="px-4 py-3 font-semibold text-ink tabular-nums">
-                            Rp {comp.amount.toLocaleString("id-ID")}
+                          <td className="px-4 py-3 text-ink max-w-xs truncate">
+                            {tx.description}
+                            {tx.createdByName && (
+                              <span className="block text-[10px] text-muted">Oleh: {tx.createdByName}</span>
+                            )}
                           </td>
-                          {isAdmin && (
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => openComponentModal(comp)}
-                                  className="p-1.5 text-ink-muted hover:text-accent hover:bg-subtle rounded transition"
-                                  title="Sunting Tarif"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  onClick={() => setDeletingComponent(comp)}
-                                  className="p-1.5 text-danger hover:bg-danger-soft rounded transition"
-                                  title="Hapus Tarif"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </td>
-                          )}
+                          <td className="px-4 py-3 text-right tabular-nums font-medium text-success whitespace-nowrap">
+                            {tx.type === "debit" ? `Rp ${tx.amount.toLocaleString("id-ID")}` : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums font-medium text-danger whitespace-nowrap">
+                            {tx.type === "credit" ? `Rp ${tx.amount.toLocaleString("id-ID")}` : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums font-bold text-ink whitespace-nowrap">
+                            Rp {tx.runningBalance.toLocaleString("id-ID")}
+                          </td>
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => handleDeleteCashTransaction(tx.id)}
+                              disabled={deletingCashId === tx.id}
+                              title="Hapus Transaksi"
+                              className="p-1 text-muted hover:text-danger hover:bg-danger-soft rounded transition disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Modal Unggah Bukti Bayar */}
+      {/* MODAL 1: Unggah Bukti Bayar */}
       {selectedInvoice && (
-        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg max-w-md w-full p-6 space-y-4">
-            <h4 className="font-bold text-base text-ink">Unggah Bukti Pembayaran</h4>
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h4 className="text-base font-bold text-ink">Upload Bukti Transfer</h4>
             <p className="text-xs text-muted">
-              Tagihan: <strong>{selectedInvoice.componentName}</strong> (Rp{" "}
+              Tagihan: {selectedInvoice.componentName} &bull; Periode: {selectedInvoice.month} (Rp{" "}
               {selectedInvoice.amount.toLocaleString("id-ID")})
             </p>
 
             <form onSubmit={handleUploadProof} className="space-y-4">
-              <label
-                htmlFor="proof-upload"
-                className="block p-6 bg-ground rounded text-center cursor-pointer"
-              >
+              <label htmlFor="proof-upload" className="block p-6 bg-ground rounded text-center cursor-pointer">
                 <UploadCloud className="w-6 h-6 text-faint mx-auto mb-2" />
                 <p className="text-xs text-ink font-medium">
                   {file ? file.name : "Klik untuk memilih gambar struk/bukti transfer"}
@@ -721,58 +1071,52 @@ export function FinanceManager() {
         </div>
       )}
 
-      {/* Modal Tambah / Sunting Komponen Biaya */}
+      {/* MODAL 2: Tambah/Edit Fee Component */}
       {isComponentModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-base text-ink">
-                {editingComponent ? "Sunting Komponen Tarif" : "Tambah Komponen Tarif"}
-              </h4>
-              <button
-                onClick={() => setIsComponentModalOpen(false)}
-                className="p-1 text-muted hover:text-ink rounded transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h4 className="text-base font-bold text-ink">
+              {editingComponent ? "Sunting Komponen Tarif" : "Tambah Komponen Tarif Baru"}
+            </h4>
 
-            <form onSubmit={handleSaveComponent} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveComponent} className="space-y-3">
               <div>
-                <label className="block font-medium text-ink mb-1">
-                  Nama Komponen Biaya <span className="text-danger">*</span>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nama Komponen Biaya
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Misal: SPP Bulanan, Uang Praktikum"
+                  placeholder="e.g. SPP Bulanan Kelas 10"
                   value={compName}
                   onChange={(e) => setCompName(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-ink mb-1">
-                  Nominal Standar (Rp) <span className="text-danger">*</span>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nominal Tarif (Rp)
                 </label>
                 <input
                   type="number"
-                  required
-                  min="1"
                   placeholder="350000"
+                  min={1}
                   value={compAmount}
                   onChange={(e) => setCompAmount(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink tabular-nums focus:outline-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent tabular-nums"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-ink mb-1">Target Tingkat Kelas</label>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Target Tingkat Kelas
+                </label>
                 <select
                   value={compGradeLevel}
                   onChange={(e) => setCompGradeLevel(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
                 >
                   <option value="all">Semua Tingkat</option>
                   <option value="7">Kelas 7</option>
@@ -784,18 +1128,18 @@ export function FinanceManager() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setIsComponentModalOpen(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-subtle rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingComponent}
-                  className="px-3.5 py-1.5 text-xs font-medium bg-accent hover:bg-accent-strong text-white rounded transition disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-semibold bg-accent text-white hover:bg-accent-strong rounded transition disabled:opacity-50"
                 >
                   {submittingComponent ? "Menyimpan..." : "Simpan Tarif"}
                 </button>
@@ -805,27 +1149,28 @@ export function FinanceManager() {
         </div>
       )}
 
-      {/* Modal Hapus Komponen Biaya */}
+      {/* MODAL 3: Hapus Fee Component Confirmation */}
       {deletingComponent && (
-        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg max-w-sm w-full p-6 space-y-4">
-            <h4 className="font-bold text-base text-ink">Hapus Komponen Tarif</h4>
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-sm w-full p-6 space-y-4">
+            <h4 className="text-base font-bold text-ink flex items-center gap-2">
+              <Trash2 className="w-4 h-4 text-danger" /> Hapus Komponen Tarif?
+            </h4>
             <p className="text-xs text-muted">
-              Apakah Anda yakin ingin menghapus komponen tarif{" "}
-              <strong>{deletingComponent.name}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus komponen biaya <strong className="text-ink">{deletingComponent.name}</strong>?
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingComponent(null)}
-                className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-subtle rounded transition"
+                className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleDeleteComponent}
-                className="px-3.5 py-1.5 text-xs font-medium bg-danger hover:bg-danger-ink text-white rounded transition"
+                className="px-3.5 py-1.5 text-xs font-semibold bg-danger text-white hover:bg-danger-ink rounded transition"
               >
                 Hapus
               </button>
@@ -834,117 +1179,106 @@ export function FinanceManager() {
         </div>
       )}
 
-      {/* Modal Buat Tagihan Manual */}
+      {/* MODAL 4: Buat Tagihan Perseorangan Manual */}
       {isManualInvoiceModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-surface rounded-lg max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h4 className="font-bold text-base text-ink">Buat Tagihan Manual Per Siswa</h4>
-              <button
-                onClick={() => setIsManualInvoiceModalOpen(false)}
-                className="p-1 text-muted hover:text-ink rounded transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h4 className="text-base font-bold text-ink">Buat Tagihan Siswa Manual</h4>
 
-            <form onSubmit={handleCreateManualInvoice} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateManualInvoice} className="space-y-3">
               <div>
-                <label className="block font-medium text-ink mb-1">
-                  Pilih Siswa <span className="text-danger">*</span>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Pilih Siswa
                 </label>
                 <select
-                  required
                   value={selectedStudentId}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
                 >
-                  <option value="" disabled>
-                    -- Pilih Siswa --
-                  </option>
-                  {students.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.fullName} ({st.username}) {st.currentClassroom ? `- ${st.currentClassroom}` : ""}
+                  <option value="">Pilih Siswa...</option>
+                  {students.map((std) => (
+                    <option key={std.id} value={std.id}>
+                      {std.fullName} ({std.username}) {std.currentClassroom ? `- ${std.currentClassroom}` : ""}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block font-medium text-ink mb-1">
-                  Komponen Tarif <span className="text-danger">*</span>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Komponen Biaya
                 </label>
                 <select
-                  required
                   value={selectedFeeCompId}
-                  onChange={(e) => handleSelectCompInInvoice(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                  onChange={(e) => handleFeeComponentChange(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
                 >
-                  <option value="" disabled>
-                    -- Pilih Komponen Biaya --
-                  </option>
+                  <option value="">Pilih Komponen...</option>
                   {feeComponents.map((comp) => (
                     <option key={comp.id} value={comp.id}>
-                      {comp.name} - Rp {comp.amount.toLocaleString("id-ID")}
+                      {comp.name} (Rp {comp.amount.toLocaleString("id-ID")})
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block font-medium text-ink mb-1">
-                  Nominal Tagihan (Rp) <span className="text-danger">*</span>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Nominal Tagihan (Rp)
                 </label>
                 <input
                   type="number"
-                  required
-                  min="1"
+                  min={1}
                   value={invoiceAmount}
                   onChange={(e) => setInvoiceAmount(e.target.value)}
-                  className="w-full px-3 py-2 bg-ground rounded text-ink tabular-nums focus:outline-none"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent tabular-nums"
+                  required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-ink mb-1">Bulan Periode</label>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Bulan Periode
+                  </label>
                   <input
                     type="month"
                     value={invoiceMonth}
-                    onChange={(e) => {
-                      setInvoiceMonth(e.target.value);
-                      if (e.target.value) {
-                        setInvoiceDueDate(`${e.target.value}-15`);
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                    onChange={(e) => setInvoiceMonth(e.target.value)}
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-ink mb-1">Tanggal Jatuh Tempo</label>
+                  <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                    Jatuh Tempo
+                  </label>
                   <input
                     type="date"
                     value={invoiceDueDate}
                     onChange={(e) => setInvoiceDueDate(e.target.value)}
-                    className="w-full px-3 py-2 bg-ground rounded text-ink focus:outline-none"
+                    className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                    required
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setIsManualInvoiceModalOpen(false)}
-                  className="px-3 py-1.5 text-xs font-medium text-ink-muted hover:bg-subtle rounded transition"
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={submittingInvoice}
-                  className="px-3.5 py-1.5 text-xs font-medium bg-accent hover:bg-accent-strong text-white rounded transition disabled:opacity-50"
+                  className="px-3.5 py-1.5 text-xs font-semibold bg-accent text-white hover:bg-accent-strong rounded transition disabled:opacity-50"
                 >
-                  {submittingInvoice ? "Menerbitkan..." : "Terbitkan Tagihan"}
+                  {submittingInvoice ? "Membuat..." : "Buat Tagihan"}
                 </button>
               </div>
             </form>

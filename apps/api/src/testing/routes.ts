@@ -67,6 +67,9 @@ export const routes: RouteSpec[] = [
   { method: "POST", path: "/api/finance/batch-generate", allow: ["admin"] },
   { method: "POST", path: "/api/finance/upload-proof", allow: ALL },
   { method: "POST", path: "/api/finance/verify", allow: ["admin"] },
+  { method: "GET", path: "/api/finance/cash-transactions", allow: ["admin"] },
+  { method: "POST", path: "/api/finance/cash-transactions", allow: ["admin"] },
+  { method: "DELETE", path: "/api/finance/cash-transactions/ctx_test", allow: ["admin"] },
 
   { method: "GET", path: "/api/gradebook/scores", allow: ["admin", "teacher"] },
   { method: "POST", path: "/api/gradebook/save", allow: ["admin", "teacher"] },

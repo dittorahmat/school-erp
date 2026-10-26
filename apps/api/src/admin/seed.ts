@@ -3,12 +3,14 @@ import {
   assessmentComponents,
   attendanceRecords,
   attendanceSessions,
+  cashTransactions,
   classrooms,
   createDb,
   demoAcademicYears,
   demoAssessmentComponents,
   demoAttendanceRecords,
   demoAttendanceSessions,
+  demoCashTransactions,
   demoClassrooms,
   demoEnrollments,
   demoFeeComponents,
@@ -100,6 +102,7 @@ export async function seedDemo(db: Db, hashPassword: PasswordHasher) {
   await insertChunked(db, attendanceRecords, demoAttendanceRecords);
   await insertChunked(db, feeComponents, demoFeeComponents);
   await insertChunked(db, invoices, demoInvoices);
+  await insertChunked(db, cashTransactions, demoCashTransactions);
   await insertChunked(db, assessmentComponents, demoAssessmentComponents);
   await insertChunked(db, studentGrades, demoStudentGrades);
   await insertChunked(db, guardianStudents, demoGuardianStudents);
@@ -128,6 +131,7 @@ export async function seedDemo(db: Db, hashPassword: PasswordHasher) {
     attendanceRecords: await countRows(attendanceRecords),
     feeComponents: await countRows(feeComponents),
     invoices: await countRows(invoices),
+    cashTransactions: await countRows(cashTransactions),
     assessmentComponents: await countRows(assessmentComponents),
     studentGrades: await countRows(studentGrades),
     guardianLinks: await countRows(guardianStudents),
