@@ -21,6 +21,7 @@ import {
 import { activeYearId, canReadStudent, visibleStudentIds } from "../access/student-access";
 import { isEmptyDatabase } from "../empty-database";
 import { processCashLedger } from "./cash-ledger";
+import { BillingSettlement, BillingDomainError } from "./billing";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -121,92 +122,15 @@ financeRouter.post("/batch-generate", requireRoles("admin"), async (c) => {
   }
 
   const db = createDb(c.env.DB);
-  const { month } = parsed.data;
-  const componentId = parsed.data.componentId ?? "fee_spp";
-  const amount = parsed.data.amount;
+  const billing = new BillingSettlement(db);
 
   try {
-    const activeYears = await db
-      .select()
-      .from(academicYears)
-      .where(eq(academicYears.isActive, true))
-      .limit(1);
-
-    const yearId = activeYears[0]?.id;
-    if (!yearId) {
-      return c.json({ error: "Tahun ajaran aktif belum ditetapkan" }, 400);
-    }
-
-    const components = await db
-      .select()
-      .from(feeComponents)
-      .where(eq(feeComponents.id, componentId))
-      .limit(1);
-    const component = components[0];
-    if (!component) {
-      return c.json({ error: `Komponen biaya ${componentId} tidak ditemukan` }, 404);
-    }
-
-    const enrolledStudents = await db
-      .select({
-        studentId: studentEnrollments.studentId,
-      })
-      .from(studentEnrollments)
-      .where(eq(studentEnrollments.academicYearId, yearId));
-
-    const studentIds = [...new Set(enrolledStudents.map((s) => s.studentId))];
-    if (studentIds.length === 0) {
-      return c.json({ error: "Tidak ada siswa terdaftar pada tahun ajaran aktif" }, 400);
-    }
-
-    const existingInvoices = await db
-      .select({
-        studentId: invoices.studentId,
-      })
-      .from(invoices)
-      .where(
-        and(
-          eq(invoices.academicYearId, yearId),
-          eq(invoices.feeComponentId, componentId),
-          eq(invoices.month, month)
-        )
-      );
-
-    const billedStudentIds = new Set(existingInvoices.map((inv) => inv.studentId));
-    const targetStudentIds = studentIds.filter((id) => !billedStudentIds.has(id));
-
-    if (targetStudentIds.length === 0) {
-      return c.json({
-        message: "Semua siswa sudah memiliki tagihan untuk periode dan komponen ini",
-        generatedCount: 0,
-      });
-    }
-
-    const newInvoices = targetStudentIds.map((studentId) => {
-      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const id = `inv_${month.replace("-", "")}_${studentId.replace("usr_", "")}_${randomSuffix}`;
-      return {
-        id,
-        studentId,
-        academicYearId: yearId,
-        feeComponentId: componentId,
-        month,
-        amount: amount ?? component.amount,
-        status: "unpaid" as const,
-        createdAt: new Date(),
-      };
-    });
-
-    await db.insert(invoices).values(newInvoices);
-
-    return c.json(
-      {
-        message: `Berhasil membuat ${newInvoices.length} tagihan untuk periode ${month}`,
-        generatedCount: newInvoices.length,
-      },
-      201
-    );
+    const result = await billing.generateBatchInvoices(parsed.data);
+    return c.json(result, result.generatedCount > 0 ? 201 : 200);
   } catch (err: unknown) {
+    if (err instanceof BillingDomainError) {
+      return c.json({ error: err.message }, err.statusCode as any);
+    }
     return c.json({ error: "Gagal memproses batch billing", message: String(err) }, 500);
   }
 });
@@ -282,65 +206,20 @@ financeRouter.post("/verify", requireRoles("admin"), async (c) => {
   }
 
   const db = createDb(c.env.DB);
+  const billing = new BillingSettlement(db);
 
   try {
-    const existing = await db
-      .select({
-        id: invoices.id,
-        amount: invoices.amount,
-        month: invoices.month,
-        studentId: invoices.studentId,
-        studentName: users.fullName,
-      })
-      .from(invoices)
-      .leftJoin(users, eq(invoices.studentId, users.id))
-      .where(eq(invoices.id, parsed.data.invoiceId))
-      .limit(1);
-
-    const inv = existing[0];
-    if (!inv) {
-      return c.json({ error: "Tagihan tidak ditemukan" }, 404);
-    }
-
-    await db
-      .update(invoices)
-      .set({
-        status: parsed.data.status,
-        paidAt: parsed.data.status === "paid" ? new Date() : null,
-      })
-      .where(eq(invoices.id, parsed.data.invoiceId));
-
-    if (parsed.data.status === "paid") {
-      // Remove any pre-existing cash transaction for this invoice to prevent duplicates
-      await db.delete(cashTransactions).where(eq(cashTransactions.invoiceId, inv.id));
-
-      const now = new Date();
-      const dateStr = now.toISOString().slice(0, 10);
-      const studentName = inv.studentName || inv.studentId;
-      const description = `Pembayaran SPP - ${inv.month ?? "Tagihan"} (${studentName})`;
-
-      await db.insert(cashTransactions).values({
-        id: `ctx_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
-        date: dateStr,
-        type: "debit",
-        category: "SPP",
-        amount: inv.amount,
-        description,
-        invoiceId: inv.id,
-        createdBy: user?.sub ?? null,
-        createdAt: now,
-      });
-    } else if (parsed.data.status === "unpaid") {
-      // Rollback: delete or void associated cash transaction for this invoice
-      await db.delete(cashTransactions).where(eq(cashTransactions.invoiceId, inv.id));
-    }
-
-    return c.json({
-      message: `Status tagihan ${parsed.data.invoiceId} berhasil diubah menjadi ${parsed.data.status}`,
+    const result = await billing.settleInvoice({
       invoiceId: parsed.data.invoiceId,
       status: parsed.data.status,
+      verifiedBy: user?.sub ?? null,
     });
+
+    return c.json(result);
   } catch (err: unknown) {
+    if (err instanceof BillingDomainError) {
+      return c.json({ error: err.message }, err.statusCode as any);
+    }
     return c.json({ error: "Gagal memverifikasi tagihan", message: String(err) }, 500);
   }
 });

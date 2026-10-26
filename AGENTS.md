@@ -41,9 +41,13 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 
 ## Arsitektur (butuh judgement, bukan lint)
 
+- **Prinsip desain**: implement YAGNI. prefer one liner solutions. Jangan membuat abstraksi spekulatif untuk skenario masa depan yang belum ada; utamakan solusi ringkas, langsung pada sasaran, dan minim overhead.
 - **Satu Worker fullstack** di `school-erp.tech1solusi.workers.dev`. Driver database pure-JS: Web Crypto dan binding D1, tanpa dependensi native C++.
 - **Akses database**: inisialisasi dengan `createDb(c.env.DB)`, impor skema dan helper Drizzle dari root `@school-erp/db`. Subpath seperti `@school-erp/db/schema` tidak terdaftar.
-- **Deep modules**: mutasi multi-tabel, validasi state-machine, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest. Handler HTTP hanya menerjemahkan payload JSON ke pemanggilan modul. Referensi: `apps/api/src/inventory/circulation.ts` + `ledger.ts`.
+- **Deep modules**: mutasi multi-tabel, validasi state-machine, integritas referensial lintas-entitas, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest terisolasi (memakai generic `DatabaseAdapter`). Handler HTTP (Hono router) hanya bertindak sebagai adapter tipis yang menerjemahkan payload JSON ke pemanggilan modul dan mengonversi domain error menjadi HTTP status code. Dilarang menulis validasi multi-query bertumpuk atau orkestrasi mutasi multi-tabel langsung di handler route.
+  - *Inventaris*: `apps/api/src/inventory/circulation.ts` (peminjaman aset), `ledger.ts` (mutasi stok ATK), dan `catalog.ts` (master katalog item & guard penghapusan).
+  - *Akademik*: `apps/api/src/academic/enrollment.ts` (penempatan siswa rombel & perwalian homeroom teacher).
+  - *Keuangan*: `apps/api/src/finance/billing.ts` (batch billing tagihan & settlement pelunasan sinkron kas umum) dan `cash-ledger.ts` (buku kas debit-kredit & running balance).
 - **Otorisasi**: setiap rute menyatakan perannya. Tabel rute tunggal ada di `apps/api/src/testing/routes.ts`; `authz.test.ts` membuktikan allow list-nya secara otomatis terhadap semua rute Hono dan `fallback.test.ts` membuktikan setiap GET menjawab 500 saat query gagal. Tambahkan rute baru di tabel itu, bukan di tiap suite.
 - **Akses siswa**: `canReadStudent`, `visibleStudentIds`, dan `activeYearId` ada di `apps/api/src/access/student-access.ts`. Rute memanggil modul itu; jangan menyalin cek wali atau tahun ajaran ke handler.
 - **Data demo**: `packages/db/src/seed/demo.ts` satu-satunya dataset. Fallback hanya lewat `isEmptyDatabase` (`apps/api/src/empty-database.ts`) saat database belum pernah di-seed; database terisi yang kosong untuk satu query menjawab kosong. Dikunci `fallback.test.ts`.

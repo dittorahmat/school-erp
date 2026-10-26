@@ -25,6 +25,7 @@ import { authMiddleware, requireRoles } from "../auth/middleware";
 import type { Bindings } from "../index";
 import { AssetCirculation } from "./circulation";
 import { StockLedger } from "./ledger";
+import { ItemCatalog, CatalogDomainError } from "./catalog";
 import { isEmptyDatabase } from "../empty-database";
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings }>();
@@ -473,25 +474,16 @@ inventoryRouter.post("/items", requireRoles("admin"), async (c) => {
     return c.json({ error: "Invalid item payload", details: parsed.error }, 400);
   }
 
-  const data = parsed.data;
   const db = createDb(c.env.DB);
-  const id = `itm_${Date.now()}`;
-  const item = {
-    id,
-    categoryId: data.categoryId,
-    code: data.code,
-    name: data.name,
-    type: data.type,
-    unit: data.unit,
-    minStockAlert: data.minStockAlert,
-    description: data.description ?? null,
-    createdAt: new Date(),
-  };
+  const catalog = new ItemCatalog(db);
 
   try {
-    await db.insert(inventoryItems).values(item);
+    const item = await catalog.registerItem(parsed.data);
     return c.json({ message: "Barang berhasil ditambahkan ke katalog", item }, 201);
   } catch (err: unknown) {
+    if (err instanceof CatalogDomainError) {
+      return c.json({ error: err.message }, err.statusCode as any);
+    }
     return c.json({ error: "Gagal menyimpan barang ke katalog", message: String(err) }, 500);
   }
 });
@@ -504,78 +496,19 @@ inventoryRouter.patch("/items/:id", requireRoles("admin"), async (c) => {
     return c.json({ error: "Invalid item update payload", details: parsed.error }, 400);
   }
 
-  const data = parsed.data;
-  if (
-    data.name === undefined &&
-    data.code === undefined &&
-    data.categoryId === undefined &&
-    data.minStockAlert === undefined &&
-    data.description === undefined
-  ) {
-    return c.json({ error: "Tidak ada data barang yang diperbarui" }, 400);
-  }
-
   const db = createDb(c.env.DB);
+  const catalog = new ItemCatalog(db);
+
   try {
-    const existing = await db
-      .select()
-      .from(inventoryItems)
-      .where(eq(inventoryItems.id, id))
-      .limit(1);
-
-    if (existing.length === 0) {
-      return c.json({ error: "Barang tidak ditemukan" }, 404);
-    }
-
-    if (data.code && data.code !== existing[0].code) {
-      const dup = await db
-        .select({ id: inventoryItems.id })
-        .from(inventoryItems)
-        .where(eq(inventoryItems.code, data.code))
-        .limit(1);
-      if (dup.length > 0) {
-        return c.json({ error: "Kode barang sudah digunakan" }, 400);
-      }
-    }
-
-    if (data.categoryId && data.categoryId !== existing[0].categoryId) {
-      const cat = await db
-        .select({ id: inventoryCategories.id })
-        .from(inventoryCategories)
-        .where(eq(inventoryCategories.id, data.categoryId))
-        .limit(1);
-      if (cat.length === 0) {
-        return c.json({ error: "Kategori tidak ditemukan" }, 400);
-      }
-    }
-
-    const updates: Partial<{
-      name: string;
-      code: string;
-      categoryId: string;
-      minStockAlert: number;
-      description: string | null;
-    }> = {};
-
-    if (data.name !== undefined) updates.name = data.name;
-    if (data.code !== undefined) updates.code = data.code;
-    if (data.categoryId !== undefined) updates.categoryId = data.categoryId;
-    if (data.minStockAlert !== undefined) updates.minStockAlert = data.minStockAlert;
-    if (data.description !== undefined) updates.description = data.description;
-
-    await db
-      .update(inventoryItems)
-      .set(updates)
-      .where(eq(inventoryItems.id, id));
-
+    const updated = await catalog.updateItem(id, parsed.data);
     return c.json({
       message: "Barang berhasil diperbarui",
-      item: {
-        ...existing[0],
-        ...updates,
-      },
+      item: updated,
     });
   } catch (err: unknown) {
+    if (err instanceof CatalogDomainError) {
+      return c.json({ error: err.message }, err.statusCode as any);
+    }
     return c.json({ error: "Gagal memperbarui barang", message: String(err) }, 500);
   }
 });
@@ -583,47 +516,15 @@ inventoryRouter.patch("/items/:id", requireRoles("admin"), async (c) => {
 inventoryRouter.delete("/items/:id", requireRoles("admin"), async (c) => {
   const id = c.req.param("id");
   const db = createDb(c.env.DB);
+  const catalog = new ItemCatalog(db);
 
   try {
-    const existing = await db
-      .select()
-      .from(inventoryItems)
-      .where(eq(inventoryItems.id, id))
-      .limit(1);
-
-    if (existing.length === 0) {
-      return c.json({ error: "Barang tidak ditemukan" }, 404);
-    }
-
-    const units = await db
-      .select({ id: inventoryAssetUnits.id })
-      .from(inventoryAssetUnits)
-      .where(eq(inventoryAssetUnits.itemId, id))
-      .limit(1);
-
-    if (units.length > 0) {
-      return c.json(
-        { error: "Barang tidak dapat dihapus karena masih memiliki unit fisik aset terdaftar" },
-        400
-      );
-    }
-
-    const movements = await db
-      .select({ id: inventoryStockMovements.id })
-      .from(inventoryStockMovements)
-      .where(eq(inventoryStockMovements.itemId, id))
-      .limit(1);
-
-    if (movements.length > 0) {
-      return c.json(
-        { error: "Barang tidak dapat dihapus karena memiliki riwayat mutasi persediaan" },
-        400
-      );
-    }
-
-    await db.delete(inventoryItems).where(eq(inventoryItems.id, id));
-    return c.json({ message: "Barang berhasil dihapus", id });
+    const result = await catalog.deleteItem(id);
+    return c.json({ message: "Barang berhasil dihapus", id: result.id });
   } catch (err: unknown) {
+    if (err instanceof CatalogDomainError) {
+      return c.json({ error: err.message }, err.statusCode as any);
+    }
     return c.json({ error: "Gagal menghapus barang", message: String(err) }, 500);
   }
 });
