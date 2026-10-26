@@ -35,6 +35,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 ## Konfigurasi otoritatif
 
 - Satu-satunya konfigurasi Worker adalah `apps/api/wrangler.toml`. Tidak ada `wrangler.toml` di root.
+- **Konfigurasi rahasia**: rahasia tidak pernah masuk `wrangler.toml`. Produksi memakai `wrangler secret put JWT_SECRET`; lokal memakai `apps/api/.dev.vars` (gitignored, contoh di `apps/api/.dev.vars.example`). `scripts/check-secrets.mjs` menolak rahasia di `[vars]` atau `.dev.vars` yang ter-track.
 - Migrasi D1 berada di `packages/db/migrations`, terhubung lewat `migrations_dir`.
 - Frontend di-bundle ke `apps/web/dist` dan disajikan dari binding `[assets]`. Jangan memisahkan frontend ke Cloudflare Pages terpisah kecuali diminta eksplisit. Lihat [ADR 0005](docs/adr/0005-unified-edge-monolith-with-static-assets.md).
 

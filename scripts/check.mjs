@@ -15,6 +15,7 @@ try {
   run("pnpm --recursive run test", "Running vitest suites");
   run("pnpm run lint:ui", "Running frontend UI taste linter");
   run("pnpm run lint:tokens", "Enforcing theme tokens (no colour literals)");
+  run("node scripts/check-secrets.mjs", "Keeping secrets out of the repo");
   run("pnpm run check:docs", "Checking demo docs against the seed");
   console.log("\n✅ All guardrail checks passed successfully!");
 } catch (error) {

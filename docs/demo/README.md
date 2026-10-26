@@ -43,14 +43,18 @@ Kesebelas akun di atas adalah akun login yang dipakai demo. Dataset seed total b
 ```bash
 pnpm install
 
-# dari apps/api
-pnpm exec wrangler d1 migrations apply school-erp-db --local
+# Rahasia lokal (JWT_SECRET) di apps/api/.dev.vars. File itu gitignored; contohnya
+# apps/api/.dev.vars.example.
+cp apps/api/.dev.vars.example apps/api/.dev.vars
+# Windows PowerShell: Copy-Item apps/api/.dev.vars.example apps/api/.dev.vars
 
-# dari root, terminal terpisah
+# Migrate + seed dalam satu perintah (hentikan dev server dulu)
+pnpm demo:reset
+
+# Jalankan API + web
 pnpm dev
 
-# terminal lain
-pnpm db:seed
+# Terminal lain
 pnpm demo:smoke
 ```
 
@@ -68,6 +72,10 @@ pnpm exec wrangler d1 execute school-erp-db --remote --command "CREATE TABLE IF 
 
 # 2. Terapkan migrasi
 pnpm exec wrangler d1 migrations apply school-erp-db --remote
+
+# 2b. Set rahasia JWT (sekali saja; rotasi = jalankan ulang lalu deploy)
+#     Tempel nilai acak minimal 32 karakter saat diminta.
+pnpm exec wrangler secret put JWT_SECRET
 
 # 3. Deploy edge monolith
 cd ../..
@@ -98,6 +106,7 @@ Smoke test **tidak** dijalankan ke produksi secara default karena membuat data u
 | `tsc` + Vitest | tipe, unit domain, matriks otorisasi rute (`authz.test.ts`) |
 | `lint:ui` | pola desain terlarang |
 | `lint:tokens` | warna hex di luar `index.css` `@theme` |
+| `check-secrets` | rahasia di `wrangler.toml` `[vars]` atau `.dev.vars` yang ter-track |
 | `check:docs` | ID yang dikutip dokumen demo tetapi tidak ada di dataset seed |
 
 ## Reset data lokal
