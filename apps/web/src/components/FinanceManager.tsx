@@ -35,6 +35,7 @@ interface CashTransaction {
   category: string;
   amount: number;
   description: string;
+  invoiceId?: string | null;
   createdBy?: string | null;
   createdByName?: string | null;
   createdAt: string;
@@ -83,6 +84,7 @@ export function FinanceManager() {
   const [loadingCash, setLoadingCash] = useState(false);
   const [submittingCash, setSubmittingCash] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [ledgerFilter, setLedgerFilter] = useState<"all" | "manual" | "spp">("all");
   const [newCashTx, setNewCashTx] = useState({
     date: new Date().toISOString().slice(0, 10),
     type: "debit" as "debit" | "credit",
@@ -567,11 +569,54 @@ export function FinanceManager() {
 
           {/* Tabel Buku Kas */}
           <div className="bg-white rounded-lg overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <h4 className="text-sm font-bold text-ink">Catatan Transaksi Buku Kas</h4>
-              <span className="text-xs text-muted tabular-nums">
-                Total: {cashTransactions.length} transaksi
-              </span>
+            <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-bold text-ink">Catatan Transaksi Buku Kas</h4>
+                <span className="text-xs text-muted tabular-nums">
+                  Menampilkan {cashTransactions.filter((tx) => {
+                    if (ledgerFilter === "spp") return Boolean(tx.invoiceId);
+                    if (ledgerFilter === "manual") return !tx.invoiceId;
+                    return true;
+                  }).length} dari {cashTransactions.length} transaksi
+                </span>
+              </div>
+
+              {/* Filter Sumber Transaksi */}
+              <div className="flex items-center gap-1 bg-ground p-1 rounded-md text-xs font-medium text-muted">
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("all")}
+                  className={`px-2.5 py-1 rounded transition ${
+                    ledgerFilter === "all"
+                      ? "bg-white text-ink font-semibold"
+                      : "hover:text-ink"
+                  }`}
+                >
+                  Semua
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("manual")}
+                  className={`px-2.5 py-1 rounded transition ${
+                    ledgerFilter === "manual"
+                      ? "bg-white text-ink font-semibold"
+                      : "hover:text-ink"
+                  }`}
+                >
+                  Manual / Operasional
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLedgerFilter("spp")}
+                  className={`px-2.5 py-1 rounded transition ${
+                    ledgerFilter === "spp"
+                      ? "bg-white text-ink font-semibold"
+                      : "hover:text-ink"
+                  }`}
+                >
+                  Otomatis SPP
+                </button>
+              </div>
             </div>
 
             {loadingCash ? (
@@ -594,7 +639,13 @@ export function FinanceManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {cashTransactions.map((tx) => (
+                    {cashTransactions
+                      .filter((tx) => {
+                        if (ledgerFilter === "spp") return Boolean(tx.invoiceId);
+                        if (ledgerFilter === "manual") return !tx.invoiceId;
+                        return true;
+                      })
+                      .map((tx) => (
                       <tr key={tx.id} className="hover:bg-ground transition">
                         <td className="px-4 py-3 whitespace-nowrap text-muted">
                           {formatDate(tx.date)}
@@ -611,7 +662,14 @@ export function FinanceManager() {
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap font-medium text-ink-soft">
-                          {tx.category}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{tx.category}</span>
+                            {tx.invoiceId && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-info-soft text-info-ink">
+                                Otomatis SPP
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-ink max-w-xs truncate">
                           {tx.description}

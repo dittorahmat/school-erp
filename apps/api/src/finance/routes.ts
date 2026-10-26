@@ -257,17 +257,28 @@ financeRouter.post("/verify", requireRoles("admin"), async (c) => {
   const db = createDb(c.env.DB);
   try {
     const existing = await db
-      .select({ id: invoices.id, status: invoices.status })
+      .select({
+        id: invoices.id,
+        status: invoices.status,
+        amount: invoices.amount,
+        month: invoices.month,
+        studentId: invoices.studentId,
+        studentName: users.fullName,
+      })
       .from(invoices)
+      .leftJoin(users, eq(invoices.studentId, users.id))
       .where(eq(invoices.id, parsed.data.invoiceId))
       .limit(1);
 
     if (!existing[0]) {
       return c.json({ error: "Tagihan tidak ditemukan" }, 404);
     }
-    if (existing[0].status === "void") {
+    const inv = existing[0];
+    if (inv.status === "void") {
       return c.json({ error: "Tagihan yang dibatalkan tidak dapat diverifikasi" }, 400);
     }
+
+    const user = c.get("user");
 
     await db
       .update(invoices)
@@ -276,6 +287,31 @@ financeRouter.post("/verify", requireRoles("admin"), async (c) => {
         paidAt: parsed.data.status === "paid" ? new Date() : null,
       })
       .where(eq(invoices.id, parsed.data.invoiceId));
+
+    if (parsed.data.status === "paid") {
+      // Remove any pre-existing cash transaction for this invoice to prevent duplicates
+      await db.delete(cashTransactions).where(eq(cashTransactions.invoiceId, inv.id));
+
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const studentName = inv.studentName || inv.studentId;
+      const description = `Pembayaran SPP - ${inv.month ?? "Tagihan"} (${studentName})`;
+
+      await db.insert(cashTransactions).values({
+        id: `ctx_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
+        date: dateStr,
+        type: "debit",
+        category: "SPP",
+        amount: inv.amount,
+        description,
+        invoiceId: inv.id,
+        createdBy: user?.sub ?? null,
+        createdAt: now,
+      });
+    } else if (parsed.data.status === "unpaid") {
+      // Rollback: delete or void associated cash transaction for this invoice
+      await db.delete(cashTransactions).where(eq(cashTransactions.invoiceId, inv.id));
+    }
 
     return c.json({
       message: `Status tagihan ${parsed.data.invoiceId} berhasil diubah menjadi ${parsed.data.status}`,
@@ -300,6 +336,7 @@ financeRouter.get("/cash-transactions", requireRoles("admin"), async (c) => {
         category: cashTransactions.category,
         amount: cashTransactions.amount,
         description: cashTransactions.description,
+        invoiceId: cashTransactions.invoiceId,
         createdBy: cashTransactions.createdBy,
         createdByName: users.fullName,
         createdAt: cashTransactions.createdAt,

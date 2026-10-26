@@ -5,6 +5,7 @@ export interface CashTransactionItem {
   category: string;
   amount: number;
   description: string;
+  invoiceId?: string | null;
   createdBy?: string | null;
   createdAt: Date | string | number;
 }
