@@ -5,6 +5,7 @@ import {
   classrooms,
   subjects,
   feeComponents,
+  cashTransactions,
   inventoryCategories,
   inventoryItems,
   inventoryLocations,
@@ -23,6 +24,7 @@ describe("Database Schema Entities", () => {
     expect(classrooms).toBeDefined();
     expect(subjects).toBeDefined();
     expect(feeComponents).toBeDefined();
+    expect(cashTransactions).toBeDefined();
     expect(inventoryCategories).toBeDefined();
     expect(inventoryItems).toBeDefined();
     expect(inventoryLocations).toBeDefined();

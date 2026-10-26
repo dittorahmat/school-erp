@@ -4,6 +4,7 @@ import {
   demoAssessmentComponents,
   demoAttendanceRecords,
   demoAttendanceSessions,
+  demoCashTransactions,
   demoClassrooms,
   demoEnrollments,
   demoGuardianStudents,
@@ -83,6 +84,7 @@ describe("Demo dataset integrity", () => {
   it("keeps grades and invoices referentially valid", () => {
     const componentIds = new Set(ids(demoAssessmentComponents));
     const studentIds = new Set(demoUsers.filter((user) => user.role === "student").map((user) => user.id));
+    const userIds = new Set(ids(demoUsers));
 
     for (const grade of demoStudentGrades) {
       expect(componentIds.has(grade.componentId)).toBe(true);
@@ -95,6 +97,16 @@ describe("Demo dataset integrity", () => {
     for (const invoice of demoInvoices) {
       expect(studentIds.has(invoice.studentId)).toBe(true);
       expect(invoice.amount).toBeGreaterThan(0);
+    }
+
+    expect(new Set(ids(demoCashTransactions)).size).toBe(demoCashTransactions.length);
+    for (const tx of demoCashTransactions) {
+      if (tx.createdBy) {
+        expect(userIds.has(tx.createdBy)).toBe(true);
+      }
+      expect(tx.amount).toBeGreaterThan(0);
+      expect(["debit", "credit"]).toContain(tx.type);
+      expect(tx.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
   });
 
