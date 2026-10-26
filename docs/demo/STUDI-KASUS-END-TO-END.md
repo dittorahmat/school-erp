@@ -75,11 +75,8 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Cek:** reload halaman; rombel tetap ada karena tersimpan di D1.
 
 ### 1.4 Terbitkan SPP November 2026
-- **Aksi:** buka **Keuangan & SPP** sebagai admin. Penerbitan massal dilakukan melalui API/alat demo:
-  ```
-  POST /api/finance/batch-generate  { "month": "2026-11" }
-  ```
-- **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan 0 tagihan baru.
+- **Aksi:** buka **Keuangan & SPP** sebagai admin. Pilih periode `2026-11` pada kontrol di kanan atas, lalu klik **Terbitkan Tagihan Massal** (atau via endpoint `POST /api/finance/batch-generate`).
+- **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan notifikasi 0 tagihan baru (dilewati karena idempoten).
 - **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
 
 ### 1.5 Verifikasi bukti transfer
@@ -88,9 +85,9 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Cek:** pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
 
 ### 1.6 Audit inventaris
-- **Aksi:** buka **Katalog Inventaris** → tab **Sirkulasi Pinjam**.
+- **Aksi:** buka **Katalog Inventaris** → sub-tab **Sirkulasi Pinjam**.
 - **Hasil:** pinjaman laptop `AST/2026/2004` berlabel **Terlambat** karena estimasi kembali 22 Oktober 2026 sudah lewat.
-- **Cek:** tab **Habis Pakai** menampilkan penghapus dengan saldo 3 di bawah minimum 5.
+- **Cek:** sub-tab **Persediaan ATK** menampilkan penghapus dengan saldo 3 di bawah minimum 5 (ambang batas peringatan stok).
 
 ---
 
@@ -113,43 +110,43 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Cek:** nilai di luar 0-100 ditolak dengan HTTP 400.
 
 ### 2.4 Ajukan pinjam aset
-- **Aksi:** buka **Inventaris** → **Sirkulasi Pinjam** → ajukan pinjaman mikroskop yang tersedia (`AST/2026/3002`), estimasi kembali 2 November 2026.
-- **Hasil:** pengajuan berstatus **Menunggu Persetujuan**; unit tetap `available` sampai disetujui.
-- **Cek:** meminjam unit yang sedang dipinjam (mis. `AST/2026/1002`) ditolak.
+- **Aksi:** buka **Katalog Inventaris** → sub-tab **Sirkulasi Pinjam** → klik tombol **Ajukan Peminjaman** di kanan atas. Pilih mikroskop yang tersedia (`AST/2026/3002`), isi estimasi kembali 2 November 2026 dan alasan penggunaan, lalu klik **Ajukan Peminjaman**.
+- **Hasil:** pengajuan berstatus **Menunggu Persetujuan**; unit fisik tetap `available` sampai disetujui.
+- **Cek:** pada formulir, unit yang sedang dipinjam (mis. `AST/2026/1002`) tidak muncul dalam daftar pilihan unit yang tersedia.
 
 ### 2.5 Ajukan barang habis pakai
-- **Aksi:** tab **Habis Pakai** → ajukan 1 kotak spidol dengan alasan "Kebutuhan papan tulis".
-- **Hasil:** requisisi berstatus **Menunggu** dan muncul di daftar permintaan.
-- **Cek:** stok belum berubah sampai admin menyetujui.
+- **Aksi:** buka sub-tab **Persediaan ATK** → klik tombol **Ajukan Permintaan ATK** di kanan atas. Pilih Spidol Boardmarker, jumlah 1 kotak, alasan "Kebutuhan papan tulis kelas X-MIPA-1", lalu klik **Kirim Permintaan**.
+- **Hasil:** requisisi berstatus **Menunggu** dan langsung muncul di daftar Permintaan Barang Habis Pakai.
+- **Cek:** saldo spidol belum berkurang sampai admin menyetujui.
 
 ---
 
 ## 5. Babak 3 — Admin memproses persetujuan dan pengembalian
 
 ### 3.1 Setujui pinjaman
-- **Aksi:** login `admin`, buka **Sirkulasi Pinjam**, setujui pengajuan mikroskop.
+- **Aksi:** login `admin`, buka **Katalog Inventaris** → sub-tab **Sirkulasi Pinjam**, klik ikon centang hijau (**Setujui**) pada pengajuan mikroskop.
 - **Hasil:** status pinjaman menjadi **Sedang Dipinjam**, unit aset menjadi `loaned`.
 - **Cek:** menyetujui dua kali ditolak (HTTP 400).
 
 ### 3.2 Inspeksi pengembalian
-- **Aksi:** klik **Terima & Cek** pada pinjaman aktif, pilih kondisi **Rusak Ringan**, isi catatan, simpan.
+- **Aksi:** klik **Terima & Cek** pada pinjaman aktif (misal proyektor `AST/2026/1002`), pilih kondisi **Rusak Ringan**, isi catatan hasil inspeksi, lalu klik **Konfirmasi Pengembalian**.
 - **Hasil:** status menjadi **Sudah Kembali**, `actualReturnDate` terisi, kondisi unit berubah menjadi `light_damage`, dan unit kembali `available`.
 - **Cek:** pengembalian kedua ditolak.
 
 ### 3.3 Setujui requisisi
-- **Aksi:** tab **Habis Pakai** → setujui permintaan spidol.
-- **Hasil:** status requisisi **Disetujui** dan otomatis tercatat mutasi keluar.
-- **Cek:** saldo spidol turun dari **16** menjadi **14** kotak (requisisi seed berjumlah 2 kotak).
+- **Aksi:** buka sub-tab **Persediaan ATK** → klik tombol centang hijau (**Setujui**) pada baris permintaan spidol.
+- **Hasil:** status requisisi berubah menjadi **Disetujui** dan otomatis tercatat mutasi keluar pada kartu kendali persediaan.
+- **Cek:** jika menyetujui permintaan guru baru (1 kotak), saldo spidol turun dari **16** menjadi **15** kotak. Jika menyetujui permintaan seed yang berstatus menunggu (2 kotak), saldo turun menjadi **14** kotak.
 
 ### 3.4 Opname stok
-- **Aksi:** catat mutasi **Koreksi/Opname** untuk penghapus sesuai hitungan fisik, misalnya 3.
-- **Hasil:** saldo baru menjadi dasar reorder berikutnya; riwayat mutasi menyimpan siapa dan kapan.
+- **Aksi:** klik **Catat Mutasi Persediaan**, pilih jenis mutasi **Koreksi / Opname Fisik**, pilih barang Penghapus Papan Tulis dengan saldo riil 3.
+- **Hasil:** saldo baru menjadi dasar reorder berikutnya; kartu kendali menyimpan riwayat mutasi koreksi lengkap dengan waktu dan keterangan.
 - **Cek:** pengeluaran melebihi saldo ditolak.
 
 ### 3.5 Label aset
-- **Aksi:** buka detail unit aset → **Label Tag Aset**.
-- **Hasil:** label memuat asset tag unik `AST/2026/xxxx`, nama barang, dan lokasi.
-- **Cek:** asset tag tidak boleh duplikat.
+- **Aksi:** buka sub-tab **Unit Fisik**, klik tombol **Preview Tag** pada salah satu unit aset (misal `AST/2026/2004`).
+- **Hasil:** kartu label menampilkan asset tag unik `AST/2026/2004`, nama barang, lokasi, dan QR preview.
+- **Cek:** asset tag unik dan tidak boleh duplikat.
 
 ---
 

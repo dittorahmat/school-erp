@@ -122,6 +122,11 @@ export function InventoryManager() {
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [showNewLoanModal, setShowNewLoanModal] = useState(false);
   const [showNewStockModal, setShowNewStockModal] = useState(false);
+  const [showRequisitionModal, setShowRequisitionModal] = useState(false);
+  const [reqItemId, setReqItemId] = useState("");
+  const [reqQty, setReqQty] = useState(1);
+  const [reqReason, setReqReason] = useState("");
+  const [reqSubmitting, setReqSubmitting] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState<Loan | null>(null);
   const [selectedUnitForLabel, setSelectedUnitForLabel] = useState<AssetUnit | null>(null);
 
@@ -359,7 +364,36 @@ export function InventoryManager() {
     }
   };
 
-  const handleApproveRequisition = async (requisitionId: string, action: "approve" | "reject") => {
+  const handleCreateRequisition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reqItemId || reqQty <= 0 || !reqReason.trim()) return;
+
+    setReqSubmitting(true);
+    try {
+      const res = await fetch("/api/inventory/requisitions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: reqItemId,
+          quantity: Number(reqQty),
+          reason: reqReason.trim(),
+        }),
+      });
+
+      if (res.ok) {
+        setShowRequisitionModal(false);
+        setReqQty(1);
+        setReqReason("");
+        loadData();
+      }
+    } catch {
+      // noop
+    } finally {
+      setReqSubmitting(false);
+    }
+  };
+
+    const handleApproveRequisition = async (requisitionId: string, action: "approve" | "reject") => {
     try {
       const res = await fetch(`/api/inventory/requisitions/${requisitionId}/approval`, {
         method: "POST",
@@ -435,17 +469,30 @@ export function InventoryManager() {
             </button>
           )}
           {activeTab === "consumables" && (
-            <button
-              onClick={() => {
-                if (consumableItems.length > 0 && !stockItemId) {
-                  setStockItemId(consumableItems[0].id);
-                }
-                setShowNewStockModal(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
-            >
-              <Plus className="w-3.5 h-3.5" /> Catat Mutasi Persediaan
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (consumableItems.length > 0 && !reqItemId) {
+                    setReqItemId(consumableItems[0].id);
+                  }
+                  setShowRequisitionModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-semibold rounded shadow-xs hover:bg-accent-strong transition"
+              >
+                <Plus className="w-3.5 h-3.5" /> Ajukan Permintaan ATK
+              </button>
+              <button
+                onClick={() => {
+                  if (consumableItems.length > 0 && !stockItemId) {
+                    setStockItemId(consumableItems[0].id);
+                  }
+                  setShowNewStockModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-subtle text-ink text-xs font-semibold rounded shadow-xs hover:bg-ground transition"
+              >
+                <Plus className="w-3.5 h-3.5" /> Catat Mutasi Persediaan
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1370,6 +1417,80 @@ export function InventoryManager() {
                   className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition"
                 >
                   Konfirmasi Pengembalian
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal New Consumable Requisition */}
+      {showRequisitionModal && (
+        <div className="fixed inset-0 bg-ink/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-ink">Formulir Permintaan Barang Habis Pakai (ATK)</h3>
+
+            <form onSubmit={handleCreateRequisition} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Pilih Barang Habis Pakai
+                </label>
+                <select
+                  value={reqItemId}
+                  onChange={(e) => setReqItemId(e.target.value)}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                >
+                  <option value="">Pilih Barang...</option>
+                  {consumableItems.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} ({item.unit})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Jumlah yang Diajukan
+                </label>
+                <input
+                  type="number"
+                  value={reqQty}
+                  onChange={(e) => setReqQty(Number(e.target.value))}
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  min={1}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold uppercase text-muted mb-1">
+                  Alasan / Kebutuhan
+                </label>
+                <textarea
+                  value={reqReason}
+                  onChange={(e) => setReqReason(e.target.value)}
+                  placeholder="e.g. Kebutuhan papan tulis kelas X-MIPA-1"
+                  className="w-full text-xs p-2 rounded bg-ground text-ink focus:outline-none focus:ring-1 focus:ring-accent h-16 resize-none"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRequisitionModal(false)}
+                  className="px-3 py-1.5 text-xs text-muted hover:bg-subtle rounded transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={reqSubmitting}
+                  className="px-3 py-1.5 text-xs bg-accent text-white font-semibold rounded shadow-xs hover:bg-accent-strong transition disabled:opacity-50"
+                >
+                  {reqSubmitting ? "Mengajukan..." : "Kirim Permintaan"}
                 </button>
               </div>
             </form>
