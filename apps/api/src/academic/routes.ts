@@ -110,6 +110,103 @@ academicRouter.post("/years", requireRoles("admin"), async (c) => {
   });
 });
 
+// PATCH /api/academic/years/:id/activate (Hanya Admin)
+academicRouter.patch("/years/:id/activate", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(academicYears)
+      .where(eq(academicYears.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Tahun ajaran tidak ditemukan" }, 404);
+    }
+
+    // Set all other years to isActive = false, and chosen year to isActive = true
+    await db.update(academicYears).set({ isActive: false });
+    await db.update(academicYears).set({ isActive: true }).where(eq(academicYears.id, id));
+
+    const updated = await db
+      .select()
+      .from(academicYears)
+      .where(eq(academicYears.id, id))
+      .limit(1);
+
+    return c.json({
+      message: "Tahun ajaran berhasil diaktifkan",
+      data: updated[0] ?? { ...existing[0], isActive: true },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal mengaktifkan tahun ajaran", message: String(err) }, 500);
+  }
+});
+
+// PATCH /api/academic/years/:id (Hanya Admin)
+academicRouter.patch("/years/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+
+  const schema = z.object({
+    name: z.string().min(4).optional(),
+    semester: z.enum(["odd", "even"]).optional(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    isActive: z.boolean().optional(),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Invalid academic year update payload" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(academicYears)
+      .where(eq(academicYears.id, id))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Tahun ajaran tidak ditemukan" }, 404);
+    }
+
+    const updates: Partial<typeof academicYears.$inferInsert> = {};
+    if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+    if (parsed.data.semester !== undefined) updates.semester = parsed.data.semester;
+    if (parsed.data.startDate !== undefined) updates.startDate = parsed.data.startDate;
+    if (parsed.data.endDate !== undefined) updates.endDate = parsed.data.endDate;
+    if (parsed.data.isActive !== undefined) {
+      if (parsed.data.isActive) {
+        await db.update(academicYears).set({ isActive: false });
+      }
+      updates.isActive = parsed.data.isActive;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(academicYears).set(updates).where(eq(academicYears.id, id));
+    }
+
+    const updated = await db
+      .select()
+      .from(academicYears)
+      .where(eq(academicYears.id, id))
+      .limit(1);
+
+    return c.json({
+      message: "Tahun ajaran berhasil diperbarui",
+      data: updated[0] ?? { ...existing[0], ...updates },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui tahun ajaran", message: String(err) }, 500);
+  }
+});
+
 // GET /api/academic/classrooms
 academicRouter.get("/classrooms", async (c) => {
   const db = createDb(c.env.DB);

@@ -33,6 +33,8 @@ export const routes: RouteSpec[] = [
   { method: "POST", path: "/api/academic/classrooms/cls_test/enroll", allow: ["admin"] },
   { method: "DELETE", path: "/api/academic/classrooms/cls_test/enroll/usr_student_test", allow: ["admin"] },
   { method: "POST", path: "/api/academic/years", allow: ["admin"] },
+  { method: "PATCH", path: "/api/academic/years/ay_test/activate", allow: ["admin"] },
+  { method: "PATCH", path: "/api/academic/years/ay_test", allow: ["admin"] },
   { method: "GET", path: "/api/academic/students", allow: ["admin", "teacher"] },
   { method: "POST", path: "/api/academic/students", allow: ["admin"] },
   { method: "PATCH", path: "/api/academic/students/usr_student_test", allow: ["admin"] },
