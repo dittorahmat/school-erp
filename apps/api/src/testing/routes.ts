@@ -26,6 +26,9 @@ export const routes: RouteSpec[] = [
 
   { method: "GET", path: "/api/academic/years", allow: ALL },
   { method: "GET", path: "/api/academic/subjects", allow: ALL },
+  { method: "POST", path: "/api/academic/subjects", allow: ["admin"] },
+  { method: "PATCH", path: "/api/academic/subjects/sub_test", allow: ["admin"] },
+  { method: "DELETE", path: "/api/academic/subjects/sub_test", allow: ["admin"] },
   { method: "GET", path: "/api/academic/classrooms", allow: ALL },
   { method: "GET", path: "/api/academic/classrooms/cls_test/students", allow: ["admin", "teacher"] },
   { method: "POST", path: "/api/academic/classrooms", allow: ["admin"] },

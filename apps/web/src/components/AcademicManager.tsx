@@ -14,6 +14,7 @@ import {
   Edit2,
   Check,
   RotateCw,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -48,6 +49,14 @@ interface ClassroomStudent {
   username: string;
 }
 
+interface Subject {
+  id: string;
+  code: string;
+  name: string;
+  gradeLevel: number;
+  createdAt?: string;
+}
+
 interface AvailableStudent {
   id: string;
   fullName: string;
@@ -69,12 +78,33 @@ export function AcademicManager() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
-  const [activeTab, setActiveTab] = useState<"classrooms" | "years">("classrooms");
+  const [activeTab, setActiveTab] = useState<"classrooms" | "years" | "subjects">("classrooms");
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null);
   const [years, setYears] = useState<AcademicYear[]>([]);
   const [teachers, setTeachers] = useState<TeacherStaff[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjectsLoading, setSubjectsLoading] = useState(false);
+  const [subjectGradeFilter, setSubjectGradeFilter] = useState<number | "all">("all");
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState("");
+
+  // New subject form
+  const [newSubjectCode, setNewSubjectCode] = useState("");
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [newSubjectGrade, setNewSubjectGrade] = useState(10);
+  const [savingSubject, setSavingSubject] = useState(false);
+
+  // Edit subject modal
+  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
+  const [editSubjectCode, setEditSubjectCode] = useState("");
+  const [editSubjectName, setEditSubjectName] = useState("");
+  const [editSubjectGrade, setEditSubjectGrade] = useState(10);
+  const [updatingSubject, setUpdatingSubject] = useState(false);
+
+  // Delete subject
+  const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -119,10 +149,11 @@ export function AcademicManager() {
 
   const loadData = async () => {
     try {
-      const [allYearsRes, classRes, staffRes] = await Promise.all([
+      const [allYearsRes, classRes, staffRes, subRes] = await Promise.all([
         fetch("/api/academic/years"),
         fetch("/api/academic/classrooms"),
         fetch("/api/staff"),
+        fetch("/api/academic/subjects"),
       ]);
 
       if (allYearsRes.ok) {
@@ -143,10 +174,29 @@ export function AcademicManager() {
         const staffList: TeacherStaff[] = json.data || [];
         setTeachers(staffList.filter((s) => s.role === "teacher" || s.role === "admin"));
       }
+      if (subRes.ok) {
+        const json = await subRes.json();
+        setSubjects(json.data || []);
+      }
     } catch {
       setError("Gagal memuat data akademik");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSubjects = async () => {
+    setSubjectsLoading(true);
+    try {
+      const res = await fetch("/api/academic/subjects");
+      if (res.ok) {
+        const json = await res.json();
+        setSubjects(json.data || []);
+      }
+    } catch {
+      setError("Gagal memuat data mata pelajaran");
+    } finally {
+      setSubjectsLoading(false);
     }
   };
 
@@ -414,6 +464,113 @@ export function AcademicManager() {
     }
   };
 
+  const handleAddSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubjectCode.trim() || !newSubjectName.trim()) return;
+
+    setSavingSubject(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const res = await fetch("/api/academic/subjects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: newSubjectCode.trim(),
+          name: newSubjectName.trim(),
+          gradeLevel: Number(newSubjectGrade),
+        }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setError(json?.error || "Gagal menambahkan mata pelajaran");
+        return;
+      }
+
+      setNewSubjectCode("");
+      setNewSubjectName("");
+      setNewSubjectGrade(10);
+      setSuccessMessage("Mata pelajaran berhasil ditambahkan");
+      await loadSubjects();
+    } catch {
+      setError("Terjadi kesalahan saat menambahkan mata pelajaran");
+    } finally {
+      setSavingSubject(false);
+    }
+  };
+
+  const openEditSubjectModal = (subj: Subject) => {
+    setEditingSubject(subj);
+    setEditSubjectCode(subj.code);
+    setEditSubjectName(subj.name);
+    setEditSubjectGrade(subj.gradeLevel);
+    setError(null);
+  };
+
+  const handleUpdateSubject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSubject) return;
+
+    setUpdatingSubject(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/academic/subjects/${editingSubject.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: editSubjectCode.trim(),
+          name: editSubjectName.trim(),
+          gradeLevel: Number(editSubjectGrade),
+        }),
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setError(json?.error || "Gagal memperbarui mata pelajaran");
+        return;
+      }
+
+      setEditingSubject(null);
+      setSuccessMessage("Mata pelajaran berhasil diperbarui");
+      await loadSubjects();
+    } catch {
+      setError("Terjadi kesalahan saat memperbarui mata pelajaran");
+    } finally {
+      setUpdatingSubject(false);
+    }
+  };
+
+  const handleDeleteSubject = async (id: string, name: string) => {
+    if (!window.confirm(`Yakin ingin menghapus mata pelajaran "${name}"?`)) {
+      return;
+    }
+
+    setDeletingSubjectId(id);
+    setError(null);
+
+    try {
+      const res = await fetch(`/api/academic/subjects/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const json = await res.json().catch(() => null);
+        setError(json?.error || "Gagal menghapus mata pelajaran");
+        return;
+      }
+
+      setSuccessMessage("Mata pelajaran berhasil dihapus");
+      await loadSubjects();
+    } catch {
+      setError("Terjadi kesalahan saat menghapus mata pelajaran");
+    } finally {
+      setDeletingSubjectId(null);
+    }
+  };
+
   // Candidates for enrollment (students not yet in this classroom)
   const enrolledStudentIds = new Set(classroomStudents.map((s) => s.id));
   const candidateStudents = availableStudents
@@ -475,6 +632,17 @@ export function AcademicManager() {
           }`}
         >
           <Calendar className="w-3.5 h-3.5" /> Tahun Ajaran & Semester
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("subjects")}
+          className={`flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded transition ${
+            activeTab === "subjects"
+              ? "bg-accent-soft text-accent-ink"
+              : "text-muted hover:bg-ground"
+          }`}
+        >
+          <BookOpen className="w-3.5 h-3.5" /> Mata Pelajaran
         </button>
       </div>
 
@@ -767,6 +935,260 @@ export function AcademicManager() {
                 </tbody>
               </table>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: SUBJECTS (MATA PELAJARAN) */}
+      {activeTab === "subjects" && (
+        <div className="space-y-6">
+          {isAdmin && (
+            <form
+              onSubmit={handleAddSubject}
+              className="p-4 bg-white rounded-lg flex flex-wrap items-center gap-3"
+            >
+              <input
+                type="text"
+                value={newSubjectCode}
+                onChange={(e) => setNewSubjectCode(e.target.value)}
+                placeholder="Kode Mapel (misal: MAT-10)"
+                className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                required
+              />
+              <input
+                type="text"
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.target.value)}
+                placeholder="Nama Mata Pelajaran"
+                className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent flex-1 min-w-[200px]"
+                required
+              />
+              <select
+                value={newSubjectGrade}
+                onChange={(e) => setNewSubjectGrade(Number(e.target.value))}
+                className="px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+              >
+                <option value={7}>Kelas 7</option>
+                <option value={8}>Kelas 8</option>
+                <option value={9}>Kelas 9</option>
+                <option value={10}>Kelas 10</option>
+                <option value={11}>Kelas 11</option>
+                <option value={12}>Kelas 12</option>
+              </select>
+              <button
+                type="submit"
+                disabled={savingSubject}
+                className="px-4 py-1.5 bg-accent text-white rounded text-xs font-semibold hover:bg-accent-strong transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                {savingSubject ? "Menyimpan..." : "Tambah Mapel"}
+              </button>
+            </form>
+          )}
+
+          {/* Subjects Table with Filter */}
+          <div className="bg-white rounded-lg overflow-hidden space-y-3 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-ink">Filter Tingkat:</span>
+                <select
+                  value={subjectGradeFilter}
+                  onChange={(e) =>
+                    setSubjectGradeFilter(
+                      e.target.value === "all" ? "all" : Number(e.target.value)
+                    )
+                  }
+                  className="px-2.5 py-1 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value="all">Semua Tingkat</option>
+                  <option value={7}>Kelas 7</option>
+                  <option value={8}>Kelas 8</option>
+                  <option value={9}>Kelas 9</option>
+                  <option value={10}>Kelas 10</option>
+                  <option value={11}>Kelas 11</option>
+                  <option value={12}>Kelas 12</option>
+                </select>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  value={subjectSearchQuery}
+                  onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                  placeholder="Cari kode atau nama mapel..."
+                  className="pl-8 pr-3 py-1 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent w-full sm:w-64"
+                />
+                <Search className="w-3.5 h-3.5 text-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+
+            {(() => {
+              const filteredSubjects = subjects
+                .filter((s) =>
+                  subjectGradeFilter === "all" ? true : s.gradeLevel === subjectGradeFilter
+                )
+                .filter((s) => {
+                  const q = subjectSearchQuery.toLowerCase().trim();
+                  if (!q) return true;
+                  return (
+                    s.name.toLowerCase().includes(q) ||
+                    s.code.toLowerCase().includes(q)
+                  );
+                });
+
+              if (subjectsLoading) {
+                return (
+                  <div className="p-8 text-center text-xs text-muted">
+                    Memuat daftar mata pelajaran...
+                  </div>
+                );
+              }
+
+              if (filteredSubjects.length === 0) {
+                return (
+                  <div className="p-8 text-center text-xs text-muted">
+                    Tidak ada mata pelajaran yang sesuai filter.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-ground text-muted text-[11px] font-semibold">
+                      <tr>
+                        <th className="py-2.5 px-3">Kode</th>
+                        <th className="py-2.5 px-3">Nama Mapel</th>
+                        <th className="py-2.5 px-3">Tingkat Kelas</th>
+                        {isAdmin && <th className="py-2.5 px-3 text-right">Aksi</th>}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSubjects.map((subj) => (
+                        <tr key={subj.id} className="hover:bg-ground transition">
+                          <td className="py-2.5 px-3 font-semibold text-accent tabular-nums">
+                            {subj.code}
+                          </td>
+                          <td className="py-2.5 px-3 font-medium text-ink">
+                            {subj.name}
+                          </td>
+                          <td className="py-2.5 px-3 text-ink-soft">
+                            Kelas <span className="tabular-nums font-semibold">{subj.gradeLevel}</span>
+                          </td>
+                          {isAdmin && (
+                            <td className="py-2.5 px-3 text-right">
+                              <div className="inline-flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => openEditSubjectModal(subj)}
+                                  className="inline-flex items-center gap-1 text-ink-soft hover:text-ink text-[11px] font-medium transition"
+                                  title="Sunting mata pelajaran"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5 text-muted" /> Sunting
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSubject(subj.id, subj.name)}
+                                  disabled={deletingSubjectId === subj.id}
+                                  className="inline-flex items-center gap-1 text-danger-ink hover:text-danger-strong text-[11px] font-medium transition ml-2 disabled:opacity-50"
+                                  title="Hapus mata pelajaran"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  {deletingSubjectId === subj.id ? "Menghapus..." : "Hapus"}
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Subject Modal */}
+      {editingSubject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/20 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full overflow-hidden">
+            <div className="px-5 py-4 flex items-center justify-between bg-ground">
+              <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-accent" /> Sunting Mata Pelajaran
+              </h4>
+              <button
+                type="button"
+                onClick={() => setEditingSubject(null)}
+                className="p-1 text-muted hover:text-ink rounded transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateSubject} className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-ink mb-1">
+                  Kode Mata Pelajaran
+                </label>
+                <input
+                  type="text"
+                  value={editSubjectCode}
+                  onChange={(e) => setEditSubjectCode(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-ink mb-1">
+                  Nama Mata Pelajaran
+                </label>
+                <input
+                  type="text"
+                  value={editSubjectName}
+                  onChange={(e) => setEditSubjectName(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-ink mb-1">
+                  Tingkat Kelas
+                </label>
+                <select
+                  value={editSubjectGrade}
+                  onChange={(e) => setEditSubjectGrade(Number(e.target.value))}
+                  className="w-full px-3 py-1.5 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                >
+                  <option value={7}>Kelas 7</option>
+                  <option value={8}>Kelas 8</option>
+                  <option value={9}>Kelas 9</option>
+                  <option value={10}>Kelas 10</option>
+                  <option value={11}>Kelas 11</option>
+                  <option value={12}>Kelas 12</option>
+                </select>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingSubject(null)}
+                  className="px-4 py-1.5 bg-ground rounded text-xs font-medium text-muted hover:text-ink transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingSubject}
+                  className="px-4 py-1.5 bg-accent text-white rounded text-xs font-semibold hover:bg-accent-strong transition disabled:opacity-50"
+                >
+                  {updatingSubject ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

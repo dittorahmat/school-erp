@@ -303,6 +303,144 @@ academicRouter.get("/subjects", async (c) => {
   }
 });
 
+// POST /api/academic/subjects (Hanya Admin)
+academicRouter.post("/subjects", requireRoles("admin"), async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const schema = z.object({
+    code: z.string().min(1, "Kode mata pelajaran wajib diisi").trim(),
+    name: z.string().min(1, "Nama mata pelajaran wajib diisi").trim(),
+    gradeLevel: z.number().int().min(7).max(12),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Data mata pelajaran tidak valid", details: parsed.error.issues }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+
+  try {
+    const existingCode = await db
+      .select({ id: subjects.id })
+      .from(subjects)
+      .where(eq(subjects.code, parsed.data.code))
+      .limit(1);
+
+    if (existingCode.length > 0) {
+      return c.json({ error: "Kode mata pelajaran sudah digunakan" }, 409);
+    }
+
+    const id = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newSubject = {
+      id,
+      code: parsed.data.code,
+      name: parsed.data.name,
+      gradeLevel: parsed.data.gradeLevel,
+      createdAt: new Date(),
+    };
+
+    await db.insert(subjects).values(newSubject);
+
+    return c.json({
+      message: "Mata pelajaran berhasil ditambahkan",
+      data: newSubject,
+    }, 201);
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menambahkan mata pelajaran", message: String(err) }, 500);
+  }
+});
+
+// PATCH /api/academic/subjects/:id (Hanya Admin)
+academicRouter.patch("/subjects/:id", requireRoles("admin"), async (c) => {
+  const subjectId = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+  const schema = z.object({
+    code: z.string().min(1).trim().optional(),
+    name: z.string().min(1).trim().optional(),
+    gradeLevel: z.number().int().min(7).max(12).optional(),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Data perubahan mata pelajaran tidak valid", details: parsed.error.issues }, 400);
+  }
+
+  const { code, name, gradeLevel } = parsed.data;
+  if (code === undefined && name === undefined && gradeLevel === undefined) {
+    return c.json({ error: "Tidak ada data yang diperbarui" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.id, subjectId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Mata pelajaran tidak ditemukan" }, 404);
+    }
+
+    if (code !== undefined && code !== existing[0].code) {
+      const duplicate = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(eq(subjects.code, code))
+        .limit(1);
+
+      if (duplicate.length > 0) {
+        return c.json({ error: "Kode mata pelajaran sudah digunakan" }, 409);
+      }
+    }
+
+    const updates: Partial<{ code: string; name: string; gradeLevel: number }> = {};
+    if (code !== undefined) updates.code = code;
+    if (name !== undefined) updates.name = name;
+    if (gradeLevel !== undefined) updates.gradeLevel = gradeLevel;
+
+    await db.update(subjects).set(updates).where(eq(subjects.id, subjectId));
+
+    return c.json({
+      message: "Mata pelajaran berhasil diperbarui",
+      data: {
+        ...existing[0],
+        ...updates,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui mata pelajaran", message: String(err) }, 500);
+  }
+});
+
+// DELETE /api/academic/subjects/:id (Hanya Admin)
+academicRouter.delete("/subjects/:id", requireRoles("admin"), async (c) => {
+  const subjectId = c.req.param("id");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select()
+      .from(subjects)
+      .where(eq(subjects.id, subjectId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Mata pelajaran tidak ditemukan" }, 404);
+    }
+
+    await db.delete(subjects).where(eq(subjects.id, subjectId));
+
+    return c.json({
+      message: "Mata pelajaran berhasil dihapus",
+      id: subjectId,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus mata pelajaran", message: String(err) }, 500);
+  }
+});
+
 // GET /api/academic/classrooms/:id/students
 academicRouter.get("/classrooms/:id/students", requireRoles("admin", "teacher"), async (c) => {
   const classroomId = c.req.param("id");
