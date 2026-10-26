@@ -81,13 +81,27 @@ describe("a never-seeded database still serves the demo dataset", () => {
     expect(response.status).toBe(200);
     expect(body.data?.students).toBeGreaterThan(0);
   });
+
+  it("returns the demo cash transactions", async () => {
+    const response = await get("/api/finance/cash-transactions", "admin", emptyDb);
+    const body = (await response.json()) as { data?: unknown[]; summary?: { totalDebit: number } };
+
+    expect(response.status).toBe(200);
+    expect(body.data?.length).toBeGreaterThan(0);
+    expect(body.summary?.totalDebit).toBeGreaterThan(0);
+  });
 });
 
 /**
  * Once a single user exists the database is seeded, so an empty read is a real
  * answer — not an invitation to reuse the demo rows.
  */
-const seededDb = createFakeD1((sql) => (/"users"/.test(sql) ? [{ id: "usr_admin" }] : []));
+const seededDb = createFakeD1((sql) => {
+  if (sql.includes('from "users"') && !sql.includes('from "cash_transactions"')) {
+    return [{ id: "usr_admin" }];
+  }
+  return [];
+});
 
 describe("a seeded database reports empty reads as empty", () => {
   it("returns no academic years instead of the demo calendar", async () => {
@@ -104,5 +118,14 @@ describe("a seeded database reports empty reads as empty", () => {
 
     expect(response.status).toBe(200);
     expect(body.categories).toEqual([]);
+  });
+
+  it("returns no cash transactions instead of demo when database is seeded", async () => {
+    const response = await get("/api/finance/cash-transactions", "admin", seededDb);
+    const body = (await response.json()) as { data: unknown[]; summary: { totalDebit: number; totalCredit: number; balance: number } };
+
+    expect(response.status).toBe(200);
+    expect(body.data).toEqual([]);
+    expect(body.summary).toEqual({ totalDebit: 0, totalCredit: 0, balance: 0 });
   });
 });

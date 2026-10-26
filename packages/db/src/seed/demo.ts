@@ -3,6 +3,7 @@ import type {
   assessmentComponents,
   attendanceRecords,
   attendanceSessions,
+  cashTransactions,
   classrooms,
   feeComponents,
   guardianStudents,
@@ -29,6 +30,7 @@ type AttendanceSessionRow = typeof attendanceSessions.$inferInsert;
 type AttendanceRecordRow = typeof attendanceRecords.$inferInsert;
 type FeeComponentRow = typeof feeComponents.$inferInsert;
 type InvoiceRow = typeof invoices.$inferInsert;
+type CashTransactionRow = typeof cashTransactions.$inferInsert;
 type AssessmentComponentRow = typeof assessmentComponents.$inferInsert;
 type StudentGradeRow = typeof studentGrades.$inferInsert;
 type GuardianStudentRow = typeof guardianStudents.$inferInsert;
@@ -525,6 +527,59 @@ export const demoInvoices: InvoiceRow[] = [
     paymentProofUrl: "proofs/INV-KEG-2026-001.jpg",
     paidAt: at("2026-09-12"),
     createdAt: at("2026-09-01"),
+  },
+];
+
+export const demoCashTransactions: CashTransactionRow[] = [
+  {
+    id: "ctx_demo_001",
+    date: "2026-10-01",
+    type: "debit",
+    category: "SPP",
+    amount: 5000000,
+    description: "Penerimaan pembayaran SPP tunai periode Oktober",
+    createdBy: "usr_admin_1",
+    createdAt: at("2026-10-01"),
+  },
+  {
+    id: "ctx_demo_002",
+    date: "2026-10-03",
+    type: "credit",
+    category: "ATK",
+    amount: 450000,
+    description: "Pembelian kertas HVS dan tinta printer kantor",
+    createdBy: "usr_admin_1",
+    createdAt: at("2026-10-03"),
+  },
+  {
+    id: "ctx_demo_003",
+    date: "2026-10-05",
+    type: "credit",
+    category: "Listrik",
+    amount: 1250000,
+    description: "Pembayaran tagihan listrik PLN gedung sekolah",
+    createdBy: "usr_admin_1",
+    createdAt: at("2026-10-05"),
+  },
+  {
+    id: "ctx_demo_004",
+    date: "2026-10-10",
+    type: "debit",
+    category: "Lain-lain",
+    amount: 750000,
+    description: "Penerimaan donasi alumni untuk kegiatan sekolah",
+    createdBy: "usr_admin_1",
+    createdAt: at("2026-10-10"),
+  },
+  {
+    id: "ctx_demo_005",
+    date: "2026-10-15",
+    type: "credit",
+    category: "Operasional",
+    amount: 600000,
+    description: "Biaya konsumsi rapat dinas guru dan staf",
+    createdBy: "usr_admin_1",
+    createdAt: at("2026-10-15"),
   },
 ];
 
@@ -1155,5 +1210,14 @@ export const demoSeedStockMovements = demoInventoryStockMovements.map((movement)
     itemCode: item?.code ?? "",
     unit: item?.unit ?? "",
     createdAt: movement.createdAt.toISOString(),
+  };
+});
+
+export const demoSeedCashTransactions = demoCashTransactions.map((tx) => {
+  const creator = demoUsers.find((user) => user.id === tx.createdBy);
+  return {
+    ...tx,
+    createdByName: creator?.fullName ?? "Administrator",
+    createdAt: tx.createdAt.toISOString(),
   };
 });

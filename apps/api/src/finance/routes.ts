@@ -5,8 +5,10 @@ import { authMiddleware, requireRoles } from "../auth/middleware";
 import {
   academicYears,
   and,
+  cashTransactions,
   classrooms,
   createDb,
+  demoSeedCashTransactions,
   demoSeedInvoices,
   desc,
   eq,
@@ -17,6 +19,7 @@ import {
 } from "@school-erp/db";
 import { canReadStudent, visibleStudentIds } from "../access/student-access";
 import { isEmptyDatabase } from "../empty-database";
+import { processCashLedger } from "./cash-ledger";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -31,6 +34,14 @@ const batchSchema = z.object({
 const verifySchema = z.object({
   invoiceId: z.string().min(1),
   status: z.enum(["paid", "unpaid"]),
+});
+
+const cashTransactionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format tanggal harus YYYY-MM-DD"),
+  type: z.enum(["debit", "credit"]),
+  category: z.string().min(1, "Kategori wajib diisi"),
+  amount: z.number().int().positive("Nominal harus berupa bilangan bulat positif"),
+  description: z.string().min(1, "Deskripsi wajib diisi"),
 });
 
 // GET /api/finance/invoices
@@ -273,6 +284,118 @@ financeRouter.post("/verify", requireRoles("admin"), async (c) => {
     });
   } catch (err: unknown) {
     return c.json({ error: "Gagal memverifikasi tagihan", message: String(err) }, 500);
+  }
+});
+
+// GET /api/finance/cash-transactions
+financeRouter.get("/cash-transactions", requireRoles("admin"), async (c) => {
+  const db = createDb(c.env.DB);
+
+  try {
+    const rows = await db
+      .select({
+        id: cashTransactions.id,
+        date: cashTransactions.date,
+        type: cashTransactions.type,
+        category: cashTransactions.category,
+        amount: cashTransactions.amount,
+        description: cashTransactions.description,
+        createdBy: cashTransactions.createdBy,
+        createdByName: users.fullName,
+        createdAt: cashTransactions.createdAt,
+      })
+      .from(cashTransactions)
+      .leftJoin(users, eq(cashTransactions.createdBy, users.id))
+      .orderBy(desc(cashTransactions.date), desc(cashTransactions.createdAt));
+
+    if (rows.length > 0) {
+      const processed = processCashLedger(rows, { reverseForDisplay: true });
+      return c.json({
+        data: processed.transactions,
+        summary: processed.summary,
+      });
+    }
+
+    if (!(await isEmptyDatabase(db))) {
+      return c.json({
+        data: [],
+        summary: { totalDebit: 0, totalCredit: 0, balance: 0 },
+      });
+    }
+
+    // Never-seeded database fallback
+    const processedDemo = processCashLedger(demoSeedCashTransactions, { reverseForDisplay: true });
+    return c.json({
+      data: processedDemo.transactions,
+      summary: processedDemo.summary,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat transaksi kas", message: String(err) }, 500);
+  }
+});
+
+// POST /api/finance/cash-transactions
+financeRouter.post("/cash-transactions", requireRoles("admin"), async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = cashTransactionSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Payload tidak valid", details: parsed.error.format() }, 400);
+  }
+
+  const user = c.get("user");
+  const db = createDb(c.env.DB);
+
+  try {
+    const id = `ctx_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`;
+    const newTx = {
+      id,
+      date: parsed.data.date,
+      type: parsed.data.type,
+      category: parsed.data.category,
+      amount: parsed.data.amount,
+      description: parsed.data.description,
+      createdBy: user?.sub ?? null,
+      createdAt: new Date(),
+    };
+
+    await db.insert(cashTransactions).values(newTx);
+
+    return c.json({
+      message: "Transaksi kas berhasil dicatat",
+      data: newTx,
+    }, 201);
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menyimpan transaksi kas", message: String(err) }, 500);
+  }
+});
+
+// DELETE /api/finance/cash-transactions/:id
+financeRouter.delete("/cash-transactions/:id", requireRoles("admin"), async (c) => {
+  const id = c.req.param("id");
+  if (!id) {
+    return c.json({ error: "ID transaksi wajib diisi" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+  try {
+    const existing = await db
+      .select({ id: cashTransactions.id })
+      .from(cashTransactions)
+      .where(eq(cashTransactions.id, id))
+      .limit(1);
+
+    if (!existing[0]) {
+      return c.json({ error: "Transaksi kas tidak ditemukan" }, 404);
+    }
+
+    await db.delete(cashTransactions).where(eq(cashTransactions.id, id));
+
+    return c.json({
+      message: `Transaksi kas ${id} berhasil dihapus`,
+      id,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal menghapus transaksi kas", message: String(err) }, 500);
   }
 });
 
