@@ -33,27 +33,27 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 
 ## 2. Persiapan
 
-1. Jalankan migrasi D1 lokal dari `apps/api`:
+1. Siapkan rahasia lokal (sekali per clone). `JWT_SECRET` tidak lagi ada di repo:
    ```bash
-   pnpm exec wrangler d1 migrations apply school-erp-db --local
+   cp apps/api/.dev.vars.example apps/api/.dev.vars
    ```
-2. Jalankan `pnpm dev`, lalu buka `http://localhost:5173`.
-3. Tanam data demo:
+   Di Windows PowerShell: `Copy-Item apps/api/.dev.vars.example apps/api/.dev.vars`. Tanpa langkah ini API menjawab 500 `JWT_SECRET belum dikonfigurasi`.
+
+2. Pastikan dev server berhenti, lalu siapkan database bersih:
    ```bash
-   pnpm db:seed
+   pnpm demo:reset
    ```
-4. Pastikan baseline sehat:
+   Perintah ini menghapus D1 lokal, menerapkan migrasi, menyalakan dev server sementara, menjalankan seed, lalu mematikannya lagi.
+
+3. Jalankan `pnpm dev`, lalu buka `http://localhost:5173`.
+
+4. Opsional, cek baseline otomatis:
    ```bash
    pnpm demo:smoke
    ```
    Hasil yang diharapkan: **semua pemeriksaan lulus**.
 
-   > Smoke test menulis data uji (invoice Desember, satu pinjaman, satu requisisi) dan **mengubah saldo stok**. Karena itu jalankan smoke test pada database sekali pakai, lalu reset sebelum menelusuri babak demo:
-   > ```bash
-   > # hentikan dev server, lalu
-   > pnpm demo:reset
-   > ```
-   > Perintah itu mengosongkan D1 lokal, menerapkan migrasi, dan menjalankan seed. Dengan begitu angka pada studi kasus ini (stok spidol 16, kolektibilitas 41,7%, Dewi tanpa tunggakan) tetap akurat.
+   > Smoke test menulis data uji (invoice Desember, satu pinjaman, satu requisisi) dan **mengubah saldo stok**. Karena itu, sebelum menelusuri babak demo, hentikan dev server lalu jalankan `pnpm demo:reset` sekali lagi. Dengan begitu angka pada studi kasus ini (stok spidol 16, kolektibilitas 41,7%, Dewi tanpa tunggakan) tetap akurat.
 
 ---
 
@@ -98,7 +98,7 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 
 ### 2.1 Presensi harian
 - **Aksi:** login `guru_budi`, buka **Presensi Siswa**.
-- **Hasil:** kelas default X-MIPA-1, tanggal otomatis ke hari sekolah terakhir (23 Oktober 2026 saat demo dijalankan 24 Oktober), dan 5 siswa dimuat.
+- **Hasil:** kelas default X-MIPA-1, tanggal otomatis ke hari sekolah terakhir pada data seed (23 Oktober 2026), dan 5 siswa dimuat.
 - **Langkah:** ubah satu siswa menjadi **Sakit**, klik **Simpan Presensi**.
 - **Cek:** reload; status tersimpan. Menyimpan kelas dan tanggal yang sama tidak membuat sesi ganda.
 
@@ -223,7 +223,7 @@ Yang diperiksa: health, login lima peran, seed idempoten, tahun ajaran, rombel, 
 - **Smoke test default lokal** karena membuat invoice, pinjaman, dan requisisi uji. Untuk produksi, gunakan verifikasi manual.
 - **Seed bersifat aditif**. Tidak ada tombol reset di produksi; reset hanya untuk D1 lokal.
 - **R2 lokal** disimulasikan Miniflare. Unggahan produksi masuk ke bucket `school-erp-storage`.
-- **JWT_SECRET** tidak ada di repo: lokal lewat `.dev.vars`, produksi lewat `wrangler secret put`. Rotasi membatalkan semua sesi yang sedang aktif.
+- **JWT_SECRET** tidak ada di repo: lokal lewat `apps/api/.dev.vars`, produksi lewat `wrangler secret put`. Rotasi membatalkan semua sesi yang sedang aktif.
 - **UI portal wali** menampilkan ringkasan; detail riwayat per tagihan masih melalui kartu SPP.
 - **Presensi** disimpan per kelas dan tanggal; dukungan presensi per mata pelajaran sudah ada di skema tetapi belum diekspos di UI.
 
@@ -233,10 +233,13 @@ Yang diperiksa: health, login lima peran, seed idempoten, tahun ajaran, rombel, 
 
 | Kebutuhan | Perintah |
 | :--- | :--- |
-| Migrasi lokal | `cd apps/api && pnpm exec wrangler d1 migrations apply school-erp-db --local` |
+| Rahasia lokal (sekali) | `cp apps/api/.dev.vars.example apps/api/.dev.vars` |
+| Reset + migrate + seed lokal | `pnpm demo:reset` (dev server harus berhenti) |
+| Migrasi lokal saja | `cd apps/api && pnpm exec wrangler d1 migrations apply school-erp-db --local` |
 | Jalankan aplikasi | `pnpm dev` |
-| Seed demo | `pnpm db:seed` |
+| Seed saat dev berjalan | `pnpm db:seed` |
 | Smoke test | `pnpm demo:smoke` |
 | Guardrail | `pnpm run check` |
+| Set/rotate secret produksi | `cd apps/api && pnpm exec wrangler secret put JWT_SECRET` |
 | Deploy | `pnpm run deploy` |
 | Seed produksi | `node scripts/seed-demo.mjs --base https://school-erp.tech1solusi.workers.dev` |
