@@ -55,6 +55,11 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 - Warna hanya lewat token `@theme` di `apps/web/src/index.css` (`bg-accent`, `text-muted`, `border-border`, ...). `pnpm run lint:tokens` menolak hex di luar blok itu.
 - Angka pada tabel dan KPI memakai `tabular-nums`; font DM Sans.
 
+## Tooling & CLI di Windows
+
+- Untuk pencarian teks cepat, gunakan `rtk rg` (atau `rg`) karena ripgrep terpasang di sistem (`C:\Users\User\.local\bin\rg.exe`). Jangan gunakan `grep` langsung (tidak ada di PATH Windows default).
+- Operasi branch worktree: saat menghapus branch fitur setelah merge ke integration branch yang posisinya mendahului branch root (`main`), jalankan `git branch -d` pada direktori worktree integrasi terkait atau gunakan `-C <worktree-path>`.
+
 ## Issue & commit di Windows
 
 - Untuk body issue/PR yang panjang, tulis ke file lalu gunakan `--body-file`; jangan menempel argumen inline dengan simbol PowerShell sensitif.

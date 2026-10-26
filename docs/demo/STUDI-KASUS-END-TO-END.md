@@ -79,12 +79,19 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan notifikasi 0 tagihan baru (dilewati karena idempoten).
 - **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
 
-### 1.5 Verifikasi bukti transfer
+### 1.5 Verifikasi bukti transfer & otomatisasi buku kas
 - **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
-- **Hasil:** status berubah menjadi **Lunas**, `paidAt` terisi, dan KPI verifikasi tertunda berkurang.
-- **Cek:** pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
+- **Hasil:** status invoice berubah menjadi **Lunas**, `paidAt` terisi, dan mutasi debit kas otomatis terbentuk di Buku Kas sebesar nominal SPP (Rp 350.000) dengan deskripsi `Pembayaran SPP - 2026-10 (Budi Santoso)`.
+- **Cek:**
+  1. Pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
+  2. Buka tab **Buku Kas & Mutasi** pada menu Keuangan & SPP: entri debit baru berlabel badge **Otomatis SPP** tampil pada baris teratas, dan total debit kas bertambah.
 
-### 1.6 Audit inventaris
+### 1.6 Pengelolaan buku kas & mutasi kas manual
+- **Aksi:** di tab **Buku Kas & Mutasi**, isi form "Tambah Transaksi Kas Baru" untuk mencatat pengeluaran operasional (Kredit), misal kategori `ATK` atau `Listrik`, masukkan nominal dan deskripsi, lalu klik **Simpan Transaksi**.
+- **Hasil:** transaksi kredit baru langsung tercatat pada tabel dengan saldo berjalan (*running balance*) terbarui secara otomatis.
+- **Cek:** gunakan filter "Manual / Operasional" dan "Otomatis SPP" untuk membedakan transaksi kas yang bersumber dari verifikasi tagihan siswa vs pengeluaran kas manual sekolah.
+
+### 1.7 Audit inventaris
 - **Aksi:** buka **Katalog Inventaris** → sub-tab **Sirkulasi Pinjam**.
 - **Hasil:** pinjaman laptop `AST/2026/2004` berlabel **Terlambat** karena estimasi kembali 22 Oktober 2026 sudah lewat.
 - **Cek:** sub-tab **Persediaan ATK** menampilkan penghapus dengan saldo 3 di bawah minimum 5 (ambang batas peringatan stok).

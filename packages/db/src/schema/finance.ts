@@ -28,3 +28,15 @@ export const invoices = sqliteTable("invoices", {
   paidAt: integer("paid_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
+
+export const cashTransactions = sqliteTable("cash_transactions", {
+  id: text("id").primaryKey(),
+  date: text("date").notNull(), // YYYY-MM-DD
+  type: text("type", { enum: ["debit", "credit"] }).notNull(),
+  category: text("category").notNull(),
+  amount: integer("amount").notNull(),
+  description: text("description").notNull(),
+  invoiceId: text("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+  createdBy: text("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
