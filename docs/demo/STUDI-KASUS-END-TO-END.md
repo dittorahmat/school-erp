@@ -84,7 +84,12 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** siswa baru terdaftar pada tabel akun siswa dengan indikator rombel awal "Belum ditempatkan".
 - **Cek:** biodata siswa dapat disunting atau disetel ulang password-nya melalui tombol aksi pada baris tabel; validasi mendeteksi username ganda bila mencoba mendaftarkan username yang sudah ada.
 
-### 1.6 Terbitkan SPP November 2026
+### 1.6 Penempatan Rombel & Penugasan Wali Kelas
+- **Aksi:** buka **Struktur Akademik**. Pada setiap kartu rombel, admin dapat memilih guru sebagai **Wali Kelas** dari dropdown guru aktif atau menghapusnya. Klik **Kelola Anggota Siswa** untuk membuka dialog manajemen anggota kelas.
+- **Hasil:** dialog menampilkan daftar siswa yang sedang terdaftar di rombel tersebut beserta opsi penambahan siswa dari daftar siswa aktif yang belum terdaftar.
+- **Cek:** pilih salah satu siswa lalu klik **Masukkan**; siswa bertambah di rombel dan jumlah siswa di kartu rombel otomatis terbarui. Tombol **Keluarkan** mengeluarkan siswa dari rombel secara aman.
+
+### 1.7 Terbitkan SPP November 2026
 - **Aksi:** buka **Keuangan & SPP** sebagai admin. Penerbitan massal dilakukan melalui API/alat demo:
   ```
   POST /api/finance/batch-generate  { "month": "2026-11" }

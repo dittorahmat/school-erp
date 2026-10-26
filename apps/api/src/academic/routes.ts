@@ -17,6 +17,7 @@ import {
   demoUsers,
   desc,
   eq,
+  and,
 } from "@school-erp/db";
 import { isEmptyDatabase } from "../empty-database";
 
@@ -238,6 +239,193 @@ academicRouter.get("/classrooms/:id/students", requireRoles("admin", "teacher"),
     });
   } catch (err: unknown) {
     return c.json({ error: "Gagal memuat siswa rombel", message: String(err) }, 500);
+  }
+});
+
+// PATCH /api/academic/classrooms/:id/homeroom (Hanya Admin)
+academicRouter.patch("/classrooms/:id/homeroom", requireRoles("admin"), async (c) => {
+  const classroomId = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+
+  const schema = z.object({
+    homeroomTeacherId: z.string().nullable().optional(),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Payload wali kelas tidak valid" }, 400);
+  }
+
+  const db = createDb(c.env.DB);
+
+  try {
+    const existingClass = await db
+      .select({ id: classrooms.id })
+      .from(classrooms)
+      .where(eq(classrooms.id, classroomId))
+      .limit(1);
+
+    if (existingClass.length === 0) {
+      return c.json({ error: "Rombel tidak ditemukan" }, 404);
+    }
+
+    const teacherId = parsed.data.homeroomTeacherId ?? null;
+    if (teacherId) {
+      const teacher = await db
+        .select({ id: users.id, role: users.role })
+        .from(users)
+        .where(eq(users.id, teacherId))
+        .limit(1);
+
+      if (teacher.length === 0) {
+        return c.json({ error: "Guru tidak ditemukan" }, 404);
+      }
+      if (teacher[0].role !== "teacher" && teacher[0].role !== "admin") {
+        return c.json({ error: "Pengguna yang dipilih bukan guru atau admin" }, 400);
+      }
+    }
+
+    await db
+      .update(classrooms)
+      .set({ homeroomTeacherId: teacherId })
+      .where(eq(classrooms.id, classroomId));
+
+    return c.json({
+      message: "Wali kelas berhasil diperbarui",
+      data: {
+        id: classroomId,
+        homeroomTeacherId: teacherId,
+      },
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memperbarui wali kelas", message: String(err) }, 500);
+  }
+});
+
+// POST /api/academic/classrooms/:id/enroll (Hanya Admin)
+academicRouter.post("/classrooms/:id/enroll", requireRoles("admin"), async (c) => {
+  const classroomId = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+
+  const schema = z.object({
+    studentId: z.string().min(1, "Student ID wajib diisi"),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "Payload pendaftaran siswa tidak valid" }, 400);
+  }
+
+  const studentId = parsed.data.studentId;
+  const db = createDb(c.env.DB);
+
+  try {
+    const existingClass = await db
+      .select({ id: classrooms.id, academicYearId: classrooms.academicYearId })
+      .from(classrooms)
+      .where(eq(classrooms.id, classroomId))
+      .limit(1);
+
+    if (existingClass.length === 0) {
+      return c.json({ error: "Rombel tidak ditemukan" }, 404);
+    }
+
+    const student = await db
+      .select({ id: users.id, role: users.role })
+      .from(users)
+      .where(eq(users.id, studentId))
+      .limit(1);
+
+    if (student.length === 0) {
+      return c.json({ error: "Siswa tidak ditemukan" }, 404);
+    }
+
+    if (student[0].role !== "student") {
+      return c.json({ error: "Pengguna bukan siswa" }, 400);
+    }
+
+    const alreadyEnrolled = await db
+      .select({ id: studentEnrollments.id })
+      .from(studentEnrollments)
+      .where(
+        and(
+          eq(studentEnrollments.classroomId, classroomId),
+          eq(studentEnrollments.studentId, studentId)
+        )
+      )
+      .limit(1);
+
+    if (alreadyEnrolled.length > 0) {
+      return c.json({ error: "Siswa sudah terdaftar di rombel ini" }, 400);
+    }
+
+    const enrollmentId = `enr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const now = new Date();
+
+    await db.insert(studentEnrollments).values({
+      id: enrollmentId,
+      studentId,
+      classroomId,
+      academicYearId: existingClass[0].academicYearId,
+      enrolledAt: now,
+    });
+
+    return c.json(
+      {
+        message: "Siswa berhasil didaftarkan ke rombel",
+        data: {
+          id: enrollmentId,
+          studentId,
+          classroomId,
+          academicYearId: existingClass[0].academicYearId,
+          enrolledAt: now,
+        },
+      },
+      201
+    );
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal mendaftarkan siswa ke rombel", message: String(err) }, 500);
+  }
+});
+
+// DELETE /api/academic/classrooms/:id/enroll/:studentId (Hanya Admin)
+academicRouter.delete("/classrooms/:id/enroll/:studentId", requireRoles("admin"), async (c) => {
+  const classroomId = c.req.param("id");
+  const studentId = c.req.param("studentId");
+  const db = createDb(c.env.DB);
+
+  try {
+    const existing = await db
+      .select({ id: studentEnrollments.id })
+      .from(studentEnrollments)
+      .where(
+        and(
+          eq(studentEnrollments.classroomId, classroomId),
+          eq(studentEnrollments.studentId, studentId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length === 0) {
+      return c.json({ error: "Data pendaftaran siswa di rombel tidak ditemukan" }, 404);
+    }
+
+    await db
+      .delete(studentEnrollments)
+      .where(
+        and(
+          eq(studentEnrollments.classroomId, classroomId),
+          eq(studentEnrollments.studentId, studentId)
+        )
+      );
+
+    return c.json({
+      message: "Siswa berhasil dikeluarkan dari rombel",
+      classroomId,
+      studentId,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal mengeluarkan siswa dari rombel", message: String(err) }, 500);
   }
 });
 
