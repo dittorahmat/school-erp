@@ -42,6 +42,8 @@ export function FinanceManager() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [batchMonth, setBatchMonth] = useState('2026-11');
+  const [generating, setGenerating] = useState(false);
 
   const loadInvoices = async () => {
     try {
@@ -99,6 +101,33 @@ export function FinanceManager() {
     }
   };
 
+  const handleBatchGenerate = async () => {
+    if (!batchMonth) return;
+    setGenerating(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/finance/batch-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: batchMonth }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(json?.error || "Gagal menerbitkan tagihan massal");
+        return;
+      }
+      setMessage(
+        `Penerbitan tagihan selesai: ${json.created} tagihan baru dibuat (${json.skipped} dilewati) untuk periode ${batchMonth}.`
+      );
+      await loadInvoices();
+    } catch {
+      setError("Gagal menerbitkan tagihan massal");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleVerify = async (invoice: Invoice) => {
     setError(null);
     try {
@@ -123,7 +152,7 @@ export function FinanceManager() {
 
   return (
     <div className="space-y-6" data-ui>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-ink flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-accent" /> Keuangan & Tagihan SPP
@@ -132,6 +161,25 @@ export function FinanceManager() {
             Tagihan dari D1 dan bukti transfer tersimpan di Cloudflare R2
           </p>
         </div>
+
+        {user?.role === "admin" && (
+          <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-border shadow-xs">
+            <span className="text-[11px] font-medium text-muted pl-1.5">Periode:</span>
+            <input
+              type="month"
+              value={batchMonth}
+              onChange={(e) => setBatchMonth(e.target.value)}
+              className="px-2 py-1 bg-ground rounded text-xs text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+            />
+            <button
+              onClick={handleBatchGenerate}
+              disabled={generating || !batchMonth}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent text-white text-xs font-semibold rounded hover:bg-accent-strong transition disabled:opacity-50"
+            >
+              {generating ? "Menerbitkan..." : "Terbitkan Tagihan Massal"}
+            </button>
+          </div>
+        )}
       </div>
 
       {message && (
