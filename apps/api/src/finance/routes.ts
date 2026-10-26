@@ -7,17 +7,15 @@ import {
   and,
   classrooms,
   createDb,
-  demoGuardianStudents,
   demoSeedInvoices,
-  demoUsers,
   desc,
   eq,
   feeComponents,
-  guardianStudents,
   invoices,
   studentEnrollments,
   users,
 } from "@school-erp/db";
+import { canReadStudent, visibleStudentIds } from "../access/student-access";
 import { isEmptyDatabase } from "../empty-database";
 
 const financeRouter = new Hono<{ Bindings: Bindings }>();
@@ -34,56 +32,6 @@ const verifySchema = z.object({
   invoiceId: z.string().min(1),
   status: z.enum(["paid", "unpaid"]),
 });
-
-async function visibleStudentIds(
-  db: ReturnType<typeof createDb>,
-  user: { sub: string; username: string; role: string }
-) {
-  if (user.role === "admin" || user.role === "teacher") return null;
-  if (user.role === "student") return [user.sub];
-
-  const links = await db
-    .select({ studentId: guardianStudents.studentId })
-    .from(guardianStudents)
-    .where(eq(guardianStudents.guardianId, user.sub));
-  if (links.length > 0) return links.map((link) => link.studentId);
-  if (!(await isEmptyDatabase(db))) return [];
-
-  // Never-seeded database: fall back to the demo guardian links.
-  const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
-  if (!demoGuardian) return [];
-  return demoGuardianStudents
-    .filter((link) => link.guardianId === demoGuardian.id)
-    .map((link) => link.studentId);
-}
-
-async function canAccessInvoice(
-  db: ReturnType<typeof createDb>,
-  user: { sub: string; username: string; role: string },
-  studentId: string
-) {
-  if (user.role === "admin" || user.role === "teacher") return true;
-  if (user.role === "student") return user.sub === studentId;
-
-  const links = await db
-    .select({ id: guardianStudents.id })
-    .from(guardianStudents)
-    .where(
-      and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
-    )
-    .limit(1);
-  if (links.length > 0) return true;
-  if (!(await isEmptyDatabase(db))) return false;
-
-  // Never-seeded database: fall back to the demo guardian links.
-  const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
-  return Boolean(
-    demoGuardian &&
-      demoGuardianStudents.some(
-        (link) => link.guardianId === demoGuardian.id && link.studentId === studentId
-      )
-  );
-}
 
 // GET /api/finance/invoices
 financeRouter.get("/invoices", async (c) => {
@@ -261,7 +209,7 @@ financeRouter.post("/upload-proof", async (c) => {
       .limit(1);
     if (!invoiceRows[0]) return c.json({ error: "Tagihan tidak ditemukan" }, 404);
 
-    if (!(await canAccessInvoice(db, user, invoiceRows[0].studentId))) {
+    if (!(await canReadStudent(db, user, invoiceRows[0].studentId))) {
       return c.json({ error: "Forbidden" }, 403);
     }
 

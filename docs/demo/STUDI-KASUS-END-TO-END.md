@@ -50,13 +50,10 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 
    > Smoke test menulis data uji (invoice Desember, satu pinjaman, satu requisisi) dan **mengubah saldo stok**. Karena itu jalankan smoke test pada database sekali pakai, lalu reset sebelum menelusuri babak demo:
    > ```bash
-   > # hentikan wrangler dev, dari apps/api
-   > Remove-Item -Recurse -Force .wrangler/state
-   > pnpm exec wrangler d1 migrations apply school-erp-db --local
-   > # jalankan dev server lagi, lalu
-   > pnpm db:seed
+   > # hentikan dev server, lalu
+   > pnpm demo:reset
    > ```
-   > Dengan begitu angka pada studi kasus ini (stok spidol 16, kolektibilitas 41,7%, Dewi tanpa tunggakan) tetap akurat.
+   > Perintah itu mengosongkan D1 lokal, menerapkan migrasi, dan menjalankan seed. Dengan begitu angka pada studi kasus ini (stok spidol 16, kolektibilitas 41,7%, Dewi tanpa tunggakan) tetap akurat.
 
 ---
 

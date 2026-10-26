@@ -1,31 +1,22 @@
 import { describe, expect, it } from "vitest";
 import { app } from "./index";
 import { signJwt } from "./auth/crypto";
+import { createFakeD1, throwingD1 } from "./testing/fake-d1";
+import { readRoutes, type Role } from "./testing/routes";
 
 /**
- * A broken database must be visible as a 500. The demo dataset may only answer
- * when a query succeeds and returns nothing (a genuinely empty database), never
- * as a silent replacement for a failed query.
+ * Error semantics of every read route.
+ *
+ * - A failed query answers 500. It never falls back to the demo dataset.
+ * - A never-seeded database answers with the demo dataset, so a fresh install works.
+ * - A seeded database that returns no rows answers empty, not demo.
+ *
+ * The route list comes from `testing/routes.ts`, so a new GET joins this suite by
+ * being added for authorization.
  */
 const SECRET = "fallback-test-secret";
 
-const throwingDb = new Proxy(
-  {},
-  {
-    get() {
-      throw new Error("fallback test: database is unavailable");
-    },
-  }
-) as unknown as D1Database;
-
-const env = {
-  DB: throwingDb,
-  STORAGE: undefined,
-  JWT_SECRET: SECRET,
-  ENVIRONMENT: "test",
-};
-
-const tokenFor = (role: string) =>
+const tokenFor = (role: Role) =>
   signJwt(
     {
       sub: `usr_${role}_test`,
@@ -37,74 +28,38 @@ const tokenFor = (role: string) =>
     SECRET
   );
 
-const reads = [
-  { path: "/api/academic/years", role: "admin" },
-  { path: "/api/academic/classrooms", role: "admin" },
-  { path: "/api/academic/subjects", role: "admin" },
-  { path: "/api/academic/classrooms/cls_10_mipa_1/students", role: "teacher" },
-  { path: "/api/attendance/summary?studentId=usr_student_1", role: "teacher" },
-  { path: "/api/attendance/sessions?classroomId=cls_10_mipa_1&date=2026-10-23", role: "teacher" },
-  { path: "/api/finance/invoices", role: "admin" },
-  { path: "/api/gradebook/scores?subjectId=sub_mat&classroomId=cls_10_mipa_1", role: "teacher" },
-  { path: "/api/gradebook/report-card?studentId=usr_student_1", role: "teacher" },
-  { path: "/api/parent/children", role: "guardian" },
-  { path: "/api/dashboard/summary", role: "admin" },
-  { path: "/api/inventory/categories", role: "admin" },
-  { path: "/api/inventory/items", role: "admin" },
-  { path: "/api/inventory/asset-units", role: "admin" },
-  { path: "/api/inventory/loans", role: "admin" },
-  { path: "/api/inventory/stock-movements", role: "admin" },
-  { path: "/api/inventory/requisitions", role: "admin" },
-];
+const envWith = (db: D1Database) => ({
+  DB: db,
+  STORAGE: undefined,
+  JWT_SECRET: SECRET,
+  ENVIRONMENT: "test",
+});
+
+const get = async (path: string, role: Role, db: D1Database) =>
+  app.request(path, { headers: { Authorization: `Bearer ${await tokenFor(role)}` } }, envWith(db));
 
 describe("database failures are not masked by demo data", () => {
-  it.each(reads)("$path answers 500 when the query fails", async ({ path, role }) => {
-    const response = await app.request(
-      path,
-      { headers: { Authorization: `Bearer ${await tokenFor(role)}` } },
-      env
-    );
+  it.each(readRoutes)("$method $path answers 500 when the query fails", async (route) => {
+    const response = await get(route.path, route.allow[0], throwingD1);
     const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
 
     expect(response.status).toBe(500);
     expect(body?.error).toBeTruthy();
-    expect(body?.data).toBeUndefined();
-    expect(body?.categories).toBeUndefined();
-    expect(body?.items).toBeUndefined();
-    expect(body?.units).toBeUndefined();
-    expect(body?.loans).toBeUndefined();
-    expect(body?.movements).toBeUndefined();
-    expect(body?.requisitions).toBeUndefined();
+    for (const key of ["data", "categories", "items", "units", "loans", "movements", "requisitions"]) {
+      expect(body?.[key]).toBeUndefined();
+    }
   });
 });
 
 /**
- * The other half of the contract: before the first seed, the demo dataset is
- * the intended answer, so the same reads must answer 200 with content.
+ * The other half of the contract: before the first seed, the demo dataset is the
+ * intended answer, so the same reads must answer 200 with content.
  */
-const emptyStatement = {
-  bind: () => emptyStatement,
-  all: async () => ({ results: [] }),
-  first: async () => null,
-  raw: async () => [],
-  run: async () => ({ results: [] }),
-};
-
-const emptyDb = {
-  prepare: () => emptyStatement,
-  batch: async () => [],
-  exec: async () => ({ count: 0 }),
-} as unknown as D1Database;
-
-const emptyEnv = { ...env, DB: emptyDb };
+const emptyDb = createFakeD1(() => []);
 
 describe("a never-seeded database still serves the demo dataset", () => {
   it("returns the demo academic years", async () => {
-    const response = await app.request(
-      "/api/academic/years",
-      { headers: { Authorization: `Bearer ${await tokenFor("admin")}` } },
-      emptyEnv
-    );
+    const response = await get("/api/academic/years", "admin", emptyDb);
     const body = (await response.json()) as { data: Array<{ id: string }> };
 
     expect(response.status).toBe(200);
@@ -112,11 +67,7 @@ describe("a never-seeded database still serves the demo dataset", () => {
   });
 
   it("returns the demo inventory categories", async () => {
-    const response = await app.request(
-      "/api/inventory/categories",
-      { headers: { Authorization: `Bearer ${await tokenFor("admin")}` } },
-      emptyEnv
-    );
+    const response = await get("/api/inventory/categories", "admin", emptyDb);
     const body = (await response.json()) as { categories?: unknown[] };
 
     expect(response.status).toBe(200);
@@ -124,11 +75,7 @@ describe("a never-seeded database still serves the demo dataset", () => {
   });
 
   it("returns the demo dashboard summary", async () => {
-    const response = await app.request(
-      "/api/dashboard/summary",
-      { headers: { Authorization: `Bearer ${await tokenFor("admin")}` } },
-      emptyEnv
-    );
+    const response = await get("/api/dashboard/summary", "admin", emptyDb);
     const body = (await response.json()) as { data?: { students: number } };
 
     expect(response.status).toBe(200);
@@ -140,34 +87,11 @@ describe("a never-seeded database still serves the demo dataset", () => {
  * Once a single user exists the database is seeded, so an empty read is a real
  * answer — not an invitation to reuse the demo rows.
  */
-const seededStatement = (sql: string) => {
-  const results = /users/i.test(sql) ? [{ id: "usr_admin" }] : [];
-  const statement = {
-    bind: () => statement,
-    all: async () => ({ results }),
-    first: async () => results[0] ?? null,
-    // Drizzle reads projected columns through raw(), one array per row.
-    raw: async () => results.map((row) => Object.values(row)),
-    run: async () => ({ results }),
-  };
-  return statement;
-};
-
-const seededDb = {
-  prepare: seededStatement,
-  batch: async () => [],
-  exec: async () => ({ count: 0 }),
-} as unknown as D1Database;
-
-const seededEnv = { ...env, DB: seededDb };
+const seededDb = createFakeD1((sql) => (/"users"/.test(sql) ? [{ id: "usr_admin" }] : []));
 
 describe("a seeded database reports empty reads as empty", () => {
   it("returns no academic years instead of the demo calendar", async () => {
-    const response = await app.request(
-      "/api/academic/years",
-      { headers: { Authorization: `Bearer ${await tokenFor("admin")}` } },
-      seededEnv
-    );
+    const response = await get("/api/academic/years", "admin", seededDb);
     const body = (await response.json()) as { data: unknown[] };
 
     expect(response.status).toBe(200);
@@ -175,11 +99,7 @@ describe("a seeded database reports empty reads as empty", () => {
   });
 
   it("returns no inventory categories instead of the demo catalogue", async () => {
-    const response = await app.request(
-      "/api/inventory/categories",
-      { headers: { Authorization: `Bearer ${await tokenFor("admin")}` } },
-      seededEnv
-    );
+    const response = await get("/api/inventory/categories", "admin", seededDb);
     const body = (await response.json()) as { categories: unknown[] };
 
     expect(response.status).toBe(200);

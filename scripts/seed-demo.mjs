@@ -1,12 +1,16 @@
+import { requireServer, resolveBase } from "./lib/server.mjs";
+
 const args = process.argv.slice(2);
 const readFlag = (name, fallback) => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
 
-const base = readFlag("base", process.env.DEMO_BASE_URL || "http://localhost:8787").replace(/\/$/, "");
+const base = resolveBase(readFlag("base", undefined));
 const username = readFlag("user", process.env.DEMO_ADMIN_USER || "admin");
 const password = readFlag("pass", process.env.DEMO_ADMIN_PASS || "admin123");
+
+await requireServer(base, "pnpm --filter @school-erp/api build lalu pnpm dev");
 
 async function request(path, init = {}) {
   const response = await fetch(`${base}${path}`, init);

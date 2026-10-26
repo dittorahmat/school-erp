@@ -2,12 +2,10 @@ import { Hono } from "hono";
 import { Bindings } from "../index";
 import { authMiddleware } from "../auth/middleware";
 import {
-  academicYears,
   assessmentComponents,
   attendanceRecords,
   classrooms,
   createDb,
-  demoAcademicYears,
   demoAssessmentComponents,
   demoAttendanceRecords,
   demoClassrooms,
@@ -26,28 +24,11 @@ import {
 import { summarizeAttendance } from "../attendance/summary";
 import { calculateFinalScore } from "../gradebook/score";
 import { isEmptyDatabase } from "../empty-database";
+import { activeYearId } from "../access/student-access";
 
 const parentRouter = new Hono<{ Bindings: Bindings }>();
 
 parentRouter.use("*", authMiddleware());
-
-const demoAcademicYearId = demoAcademicYears.find((year) => year.isActive)?.id ?? "ay_2026_2027";
-
-/**
- * A database failure must surface. The demo year answers only while the
- * database is unseeded; a seeded database without an active year is a
- * configuration error, not a reason to invent one.
- */
-async function activeYearId(db: ReturnType<typeof createDb>) {
-  const rows = await db
-    .select({ id: academicYears.id })
-    .from(academicYears)
-    .where(eq(academicYears.isActive, true))
-    .limit(1);
-  if (rows[0]) return rows[0].id;
-  if (await isEmptyDatabase(db)) return demoAcademicYearId;
-  throw new Error("Tahun ajaran aktif belum ditetapkan");
-}
 
 type ComponentRow = { id: string; subjectId: string; weightPercentage: number };
 type AttendanceRow = { status: string };
