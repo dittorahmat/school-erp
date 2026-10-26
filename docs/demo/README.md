@@ -103,12 +103,11 @@ Smoke test **tidak** dijalankan ke produksi secara default karena membuat data u
 ## Reset data lokal
 
 ```bash
-# hentikan wrangler dev, lalu dari apps/api
-rm -rf .wrangler/state
-pnpm exec wrangler d1 migrations apply school-erp-db --local
-
-# jalankan lagi dev server, lalu
-pnpm db:seed
+pnpm demo:reset
 ```
 
-Di Windows PowerShell: `Remove-Item -Recurse -Force .wrangler/state`.
+Perintah ini menghapus `apps/api/.wrangler/state`, menerapkan migrasi, menyalakan dev server sementara, menjalankan seed, lalu mematikannya lagi. Hentikan dev server dulu — script menolak berjalan bila masih ada server di `http://127.0.0.1:8787`. Untuk reset tanpa seed: `pnpm demo:reset --no-seed`.
+
+Langkah manualnya tetap ada bila script tidak cocok: hapus `.wrangler/state` di `apps/api`, `pnpm exec wrangler d1 migrations apply school-erp-db --local`, jalankan `pnpm dev`, lalu `pnpm db:seed`.
+
+Script demo memakai `http://127.0.0.1:8787`. Di Windows `localhost` bisa resolve ke IPv6 sementara Wrangler hanya mendengar di IPv4, sehingga gejalanya `fetch failed`.

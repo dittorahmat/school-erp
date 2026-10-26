@@ -6,9 +6,11 @@
 //   node scripts/probe.mjs admin POST /api/finance/batch-generate '{"month":"2026-11"}'
 //
 // Prints the status line and the body, then exits 1 on a 4xx/5xx response.
+import { requireServer, resolveBase } from "./lib/server.mjs";
+
 const args = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 const baseFlag = process.argv.find((arg) => arg.startsWith("--base="));
-const base = (baseFlag ? baseFlag.slice("--base=".length) : process.env.DEMO_BASE_URL || "http://localhost:8787").replace(/\/$/, "");
+const base = resolveBase(baseFlag ? baseFlag.slice("--base=".length) : undefined);
 
 const ACCOUNTS = {
   admin: ["admin", "admin123"],
@@ -33,6 +35,8 @@ if (!account) {
   console.error(`unknown role: ${role} (expected ${Object.keys(ACCOUNTS).join(", ")})`);
   process.exit(2);
 }
+
+await requireServer(base);
 
 const loginResponse = await fetch(`${base}/api/auth/login`, {
   method: "POST",

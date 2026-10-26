@@ -1,10 +1,12 @@
+import { requireServer, resolveBase } from "./lib/server.mjs";
+
 const args = process.argv.slice(2);
 const readFlag = (name, fallback) => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
 
-const base = readFlag("base", process.env.DEMO_BASE_URL || "http://localhost:8787").replace(/\/$/, "");
+const base = resolveBase(readFlag("base", undefined));
 const checks = [];
 
 function check(name, condition, detail = "") {
@@ -42,6 +44,8 @@ async function login(username, password) {
   }
   return result.json.token;
 }
+
+await requireServer(base, "pnpm --filter @school-erp/api build lalu pnpm dev");
 
 try {
   console.log(`Smoke test demo School ERP terhadap ${base}\n`);

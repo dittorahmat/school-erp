@@ -3,8 +3,15 @@
 // logs in and issues GETs, so it is safe to run against the live Worker.
 //
 //   node scripts/verify-prod.mjs [--base=https://school-erp.tech1solusi.workers.dev]
+import { requireServer, resolveBase } from "./lib/server.mjs";
+
 const baseFlag = process.argv.find((arg) => arg.startsWith("--base="));
-const base = (baseFlag ? baseFlag.slice("--base=".length) : "https://school-erp.tech1solusi.workers.dev").replace(/\/$/, "");
+const base = resolveBase(
+  baseFlag ? baseFlag.slice("--base=".length) : undefined,
+  "https://school-erp.tech1solusi.workers.dev"
+);
+
+await requireServer(base, "pnpm deploy");
 
 const checks = [];
 const check = (name, ok, detail = "") => {

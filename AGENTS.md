@@ -16,7 +16,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 
 ### Demo runbook
 
-`docs/demo/STUDI-KASUS-END-TO-END.md` dan `docs/demo/README.md` memuat studi kasus, akun demo, serta prosedur migrate/seed/deploy.
+`docs/demo/STUDI-KASUS-END-TO-END.md` dan `docs/demo/README.md` memuat studi kasus, akun demo, serta prosedur migrate/seed/deploy. `pnpm demo:reset` mengosongkan D1 lokal, migrate, lalu seed dalam satu perintah (hentikan dev server dulu).
 
 ## Verification loop
 
@@ -29,6 +29,7 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 
 - `pnpm probe <role> <METHOD> <path> [json]` — login sesuai peran lalu cetak status dan body. Peran: `admin`, `guru`, `guru2`, `siswa`, `siswa2`, `wali`, `wali2`. Contoh: `pnpm probe siswa GET /api/attendance/summary`.
 - `pnpm demo:smoke` menguji alur demo end-to-end; `pnpm verify:prod` adalah pemeriksaan produksi **read-only**. Keduanya menerima `--base=`.
+- Script demo default ke `http://127.0.0.1:8787` dan keluar dengan **exit 2** bila server tidak merespons. Exit 1 berarti ada pemeriksaan yang gagal; jangan men-debug produk saat yang mati adalah dev server.
 - Jangan menulis blok PowerShell/curl inline untuk memanggil endpoint.
 
 ## Konfigurasi otoritatif
@@ -42,9 +43,9 @@ Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`
 - **Satu Worker fullstack** di `school-erp.tech1solusi.workers.dev`. Driver database pure-JS: Web Crypto dan binding D1, tanpa dependensi native C++.
 - **Akses database**: inisialisasi dengan `createDb(c.env.DB)`, impor skema dan helper Drizzle dari root `@school-erp/db`. Subpath seperti `@school-erp/db/schema` tidak terdaftar.
 - **Deep modules**: mutasi multi-tabel, validasi state-machine, dan kalkulasi saldo berada di modul domain murni dengan unit test Vitest. Handler HTTP hanya menerjemahkan payload JSON ke pemanggilan modul. Referensi: `apps/api/src/inventory/circulation.ts` + `ledger.ts`.
-- **Otorisasi**: setiap rute menyatakan perannya. `apps/api/src/authz.test.ts` adalah matriks yang membuktikannya — tambahkan baris saat menambah rute.
-- **Data demo**: `packages/db/src/seed/demo.ts` adalah satu-satunya sumber dataset. Handler tidak boleh mengarang angka; kegagalan query mengembalikan error, bukan data palsu.
-- **Fallback demo**: dataset demo hanya boleh menjawab bila database belum pernah di-seed, diperiksa lewat `isEmptyDatabase(db)` di `apps/api/src/empty-database.ts`. Database terisi yang kosong untuk satu query (siswa tanpa presensi, bulan tanpa tagihan) mengembalikan hasil kosong, bukan angka demo. `apps/api/src/fallback.test.ts` mengunci kedua arah: query gagal → 500, database kosong → data demo.
+- **Otorisasi**: setiap rute menyatakan perannya. Tabel rute tunggal ada di `apps/api/src/testing/routes.ts`; `authz.test.ts` membuktikan allow list-nya dan `fallback.test.ts` membuktikan setiap GET menjawab 500 saat query gagal. Tambahkan rute baru di tabel itu, bukan di tiap suite.
+- **Akses siswa**: `canReadStudent`, `visibleStudentIds`, dan `activeYearId` ada di `apps/api/src/access/student-access.ts`. Rute memanggil modul itu; jangan menyalin cek wali atau tahun ajaran ke handler.
+- **Data demo**: `packages/db/src/seed/demo.ts` satu-satunya dataset. Fallback hanya lewat `isEmptyDatabase` (`apps/api/src/empty-database.ts`) saat database belum pernah di-seed; database terisi yang kosong untuk satu query menjawab kosong. Dikunci `fallback.test.ts`.
 - **Dokumen demo**: `check:docs` memvalidasi setiap ID yang dikutip di `docs/demo/` terhadap dataset. Jangan menulis jumlah pemeriksaan secara hardcoded.
 
 ## Frontend

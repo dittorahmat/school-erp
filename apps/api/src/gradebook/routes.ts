@@ -14,13 +14,10 @@ import {
   demoAttendanceRecords,
   demoClassrooms,
   demoEnrollments,
-  demoGuardianStudents,
   demoStudentGrades,
   demoSubjects,
   demoUsers,
-  desc,
   eq,
-  guardianStudents,
   studentEnrollments,
   studentGrades,
   subjects,
@@ -29,6 +26,7 @@ import {
 import { summarizeAttendance } from "../attendance/summary";
 import { calculateFinalScore, predicateFor } from "./score";
 import { isEmptyDatabase } from "../empty-database";
+import { activeYearId, canReadStudent } from "../access/student-access";
 
 const gradebookRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -47,53 +45,6 @@ const saveSchema = z.object({
     .min(1),
 });
 
-const demoAcademicYearId = demoAcademicYears.find((year) => year.isActive)?.id ?? "ay_2026_2027";
-
-/**
- * A database failure must surface. The demo year answers only while the
- * database is unseeded; a seeded database without an active year is a
- * configuration error, not a reason to invent one.
- */
-async function getActiveYearId(db: ReturnType<typeof createDb>) {
-  const rows = await db
-    .select({ id: academicYears.id })
-    .from(academicYears)
-    .where(eq(academicYears.isActive, true))
-    .limit(1);
-  if (rows[0]) return rows[0].id;
-  if (await isEmptyDatabase(db)) return demoAcademicYearId;
-  throw new Error("Tahun ajaran aktif belum ditetapkan");
-}
-
-async function canReadStudent(
-  db: ReturnType<typeof createDb>,
-  user: { sub: string; username: string; role: string },
-  studentId: string
-) {
-  if (user.role === "admin" || user.role === "teacher") return true;
-  if (studentId === user.sub) return true;
-  if (user.role !== "guardian") return false;
-
-  const links = await db
-    .select({ id: guardianStudents.id })
-    .from(guardianStudents)
-    .where(
-      and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId))
-    )
-    .limit(1);
-  if (links.length > 0) return true;
-  if (!(await isEmptyDatabase(db))) return false;
-
-  // Never-seeded database: fall back to the demo guardian links.
-  const demoGuardian = demoUsers.find((candidate) => candidate.username === user.username);
-  return Boolean(
-    demoGuardian &&
-      demoGuardianStudents.some(
-        (link) => link.guardianId === demoGuardian.id && link.studentId === studentId
-      )
-  );
-}
-
 // GET /api/gradebook/scores?subjectId=&classroomId=
 gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
   const db = createDb(c.env.DB);
@@ -108,7 +59,7 @@ gradebookRouter.get("/scores", requireRoles("admin", "teacher"), async (c) => {
   let teacher = "Guru Pengampu";
 
   try {
-    const yearId = await getActiveYearId(db);
+    const yearId = await activeYearId(db);
 
     const [subjectsFound, classroomsFound, componentsFound, enrollmentsFound, gradesFound] =
       await Promise.all([
@@ -235,7 +186,7 @@ gradebookRouter.post("/save", requireRoles("admin", "teacher"), async (c) => {
   const db = createDb(c.env.DB);
 
   try {
-    const yearId = await getActiveYearId(db);
+    const yearId = await activeYearId(db);
     const components = await db
       .select()
       .from(assessmentComponents)
@@ -296,15 +247,14 @@ gradebookRouter.get("/report-card", async (c) => {
   const user = c.get("user");
   const studentId = c.req.query("studentId") || user.sub;
 
-  if (!(await canReadStudent(db, user, studentId))) {
-    return c.json({ error: "Forbidden: tidak berhak melihat rapor siswa ini" }, 403);
-  }
-
   let yearId: string;
   try {
-    yearId = await getActiveYearId(db);
+    if (!(await canReadStudent(db, user, studentId))) {
+      return c.json({ error: "Forbidden: tidak berhak melihat rapor siswa ini" }, 403);
+    }
+    yearId = await activeYearId(db);
   } catch (err: unknown) {
-    return c.json({ error: "Gagal memuat tahun ajaran", message: String(err) }, 500);
+    return c.json({ error: "Gagal memeriksa akses rapor", message: String(err) }, 500);
   }
 
   let student: { fullName: string } | undefined;
