@@ -7,9 +7,7 @@ import {
   attendanceSessions,
   createDb,
   demoAttendanceRecords,
-  demoAttendanceSessions,
   demoGuardianStudents,
-  demoUsers,
   eq,
   guardianStudents,
   isNull,
@@ -17,6 +15,7 @@ import {
 } from "@school-erp/db";
 import { summarizeAttendance } from "./summary";
 import { sessionInputSchema } from "./schema";
+import { isEmptyDatabase } from "../empty-database";
 
 const attendanceRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -31,17 +30,15 @@ async function canReadStudent(
   if (studentId === user.sub) return true;
   if (user.role !== "guardian") return false;
 
-  try {
-    const links = await db
-      .select()
-      .from(guardianStudents)
-      .where(and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId)))
-      .limit(1);
-    if (links.length > 0) return true;
-  } catch {
-    // fallback below
-  }
+  const links = await db
+    .select()
+    .from(guardianStudents)
+    .where(and(eq(guardianStudents.guardianId, user.sub), eq(guardianStudents.studentId, studentId)))
+    .limit(1);
+  if (links.length > 0) return true;
+  if (!(await isEmptyDatabase(db))) return false;
 
+  // Never-seeded database: honour the demo guardian links.
   return demoGuardianStudents.some(
     (link) => link.guardianId === user.sub && link.studentId === studentId
   );
@@ -57,13 +54,18 @@ attendanceRouter.get("/summary", async (c) => {
     return c.json({ error: "Forbidden: tidak berhak melihat presensi siswa ini" }, 403);
   }
 
-  let records: Array<{ status: string }> = [];
+  let records: Array<{ status: string }>;
   try {
     records = await db
       .select({ status: attendanceRecords.status })
       .from(attendanceRecords)
       .where(eq(attendanceRecords.studentId, studentId));
-  } catch {
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat rekap presensi", message: String(err) }, 500);
+  }
+
+  if (records.length === 0 && (await isEmptyDatabase(db))) {
+    // Never-seeded database: fall back to the demo history.
     records = demoAttendanceRecords.filter((record) => record.studentId === studentId);
   }
 
@@ -105,26 +107,9 @@ attendanceRouter.get("/sessions", requireRoles("admin", "teacher"), async (c) =>
     }
 
     return c.json({ data: null });
-  } catch {
-    // fallback below
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat sesi presensi", message: String(err) }, 500);
   }
-
-  const demoSession = demoAttendanceSessions.find(
-    (item) => item.classroomId === classroomId && item.date === date
-  );
-  if (!demoSession) return c.json({ data: null });
-
-  return c.json({
-    data: {
-      ...demoSession,
-      records: demoAttendanceRecords
-        .filter((record) => record.sessionId === demoSession.id)
-        .map((record) => ({
-          ...record,
-          studentName: demoUsers.find((user) => user.id === record.studentId)?.fullName ?? "",
-        })),
-    },
-  });
 });
 
 // POST /api/attendance/session (Guru / Admin)

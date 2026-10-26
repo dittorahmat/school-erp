@@ -17,6 +17,7 @@ import {
   desc,
   eq,
 } from "@school-erp/db";
+import { isEmptyDatabase } from "../empty-database";
 
 const academicRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -24,18 +25,14 @@ academicRouter.use("*", authMiddleware());
 
 const fallbackActiveYear = demoAcademicYears.find((year) => year.isActive) ?? demoAcademicYears[0];
 
-async function findActiveYear(db: ReturnType<typeof createDb>) {
-  try {
-    const rows = await db
-      .select()
-      .from(academicYears)
-      .where(eq(academicYears.isActive, true))
-      .limit(1);
-    if (rows[0]) return rows[0];
-  } catch {
-    // fallback below
-  }
-  return fallbackActiveYear;
+/** A database failure must surface, not silently resolve to the demo calendar. */
+function findActiveYear(db: ReturnType<typeof createDb>) {
+  return db
+    .select()
+    .from(academicYears)
+    .where(eq(academicYears.isActive, true))
+    .limit(1)
+    .then((rows) => rows[0] ?? null);
 }
 
 // GET /api/academic/years
@@ -45,11 +42,11 @@ academicRouter.get("/years", async (c) => {
 
   try {
     years = await db.select().from(academicYears).orderBy(desc(academicYears.createdAt));
-  } catch {
-    // fallback below
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat tahun ajaran", message: String(err) }, 500);
   }
 
-  if (years.length === 0) {
+  if (years.length === 0 && (await isEmptyDatabase(db))) {
     years = demoAcademicYears.map((year) => ({
       id: year.id,
       name: year.name,
@@ -138,11 +135,13 @@ academicRouter.get("/classrooms", async (c) => {
       }));
       return c.json({ data });
     }
-  } catch {
-    // fallback below
-  }
 
-  return c.json({ data: demoClassrooms });
+    // No classroom yet: only a never-seeded database may show the demo rombel.
+    if (!(await isEmptyDatabase(db))) return c.json({ data: [] });
+    return c.json({ data: demoClassrooms });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat rombel", message: String(err) }, 500);
+  }
 });
 
 // POST /api/academic/classrooms (Hanya Admin)
@@ -161,17 +160,18 @@ academicRouter.post("/classrooms", requireRoles("admin"), async (c) => {
   }
 
   const db = createDb(c.env.DB);
-  const activeYear = await findActiveYear(db);
-  const classroom = {
-    id: `cls_${Date.now()}`,
-    academicYearId: parsed.data.academicYearId ?? activeYear.id,
-    name: parsed.data.name,
-    gradeLevel: parsed.data.gradeLevel,
-    homeroomTeacherId: parsed.data.homeroomTeacherId ?? null,
-    createdAt: new Date(),
-  };
 
   try {
+    const activeYear = await findActiveYear(db);
+    const classroom = {
+      id: `cls_${Date.now()}`,
+      academicYearId: parsed.data.academicYearId ?? activeYear?.id ?? fallbackActiveYear.id,
+      name: parsed.data.name,
+      gradeLevel: parsed.data.gradeLevel,
+      homeroomTeacherId: parsed.data.homeroomTeacherId ?? null,
+      createdAt: new Date(),
+    };
+
     await db.insert(classrooms).values(classroom);
     return c.json({ message: "Rombel berhasil ditambahkan", data: classroom }, 201);
   } catch (err: unknown) {
@@ -191,15 +191,17 @@ academicRouter.get("/subjects", async (c) => {
         data: gradeLevel ? list.filter((subject) => subject.gradeLevel === Number(gradeLevel)) : list,
       });
     }
-  } catch {
-    // fallback below
-  }
 
-  return c.json({
-    data: gradeLevel
-      ? demoSubjects.filter((subject) => subject.gradeLevel === Number(gradeLevel))
-      : demoSubjects,
-  });
+    // No subject yet: only a never-seeded database may show the demo curriculum.
+    if (!(await isEmptyDatabase(db))) return c.json({ data: [] });
+    return c.json({
+      data: gradeLevel
+        ? demoSubjects.filter((subject) => subject.gradeLevel === Number(gradeLevel))
+        : demoSubjects,
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat mata pelajaran", message: String(err) }, 500);
+  }
 });
 
 // GET /api/academic/classrooms/:id/students
@@ -220,19 +222,22 @@ academicRouter.get("/classrooms/:id/students", requireRoles("admin", "teacher"),
       .orderBy(users.fullName);
 
     if (rows.length > 0) return c.json({ data: rows });
-  } catch {
-    // fallback below
+
+    // An empty rombel is a real answer once the database is seeded.
+    if (!(await isEmptyDatabase(db))) return c.json({ data: [] });
+
+    const studentIds = demoEnrollments
+      .filter((enrollment) => enrollment.classroomId === classroomId)
+      .map((enrollment) => enrollment.studentId);
+
+    return c.json({
+      data: demoUsers
+        .filter((user) => studentIds.includes(user.id))
+        .map((user) => ({ id: user.id, name: user.fullName, username: user.username })),
+    });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat siswa rombel", message: String(err) }, 500);
   }
-
-  const studentIds = demoEnrollments
-    .filter((enrollment) => enrollment.classroomId === classroomId)
-    .map((enrollment) => enrollment.studentId);
-
-  return c.json({
-    data: demoUsers
-      .filter((user) => studentIds.includes(user.id))
-      .map((user) => ({ id: user.id, name: user.fullName, username: user.username })),
-  });
 });
 
 export { academicRouter };

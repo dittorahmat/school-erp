@@ -23,6 +23,7 @@ import { authMiddleware, requireRoles } from "../auth/middleware";
 import type { Bindings } from "../index";
 import { AssetCirculation } from "./circulation";
 import { StockLedger } from "./ledger";
+import { isEmptyDatabase } from "../empty-database";
 
 export const inventoryRouter = new Hono<{ Bindings: Bindings }>();
 
@@ -124,9 +125,10 @@ inventoryRouter.get("/categories", async (c) => {
       .from(inventoryCategories)
       .orderBy(inventoryCategories.name);
     if (categories.length > 0) return c.json({ categories });
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat kategori inventaris", message: String(err) }, 500);
   }
+  if (!(await isEmptyDatabase(db))) return c.json({ categories: [] });
   return c.json({ categories: demoSeedCategories });
 });
 
@@ -164,9 +166,10 @@ inventoryRouter.get("/locations", async (c) => {
       .from(inventoryLocations)
       .orderBy(inventoryLocations.name);
     if (locations.length > 0) return c.json({ locations });
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat lokasi inventaris", message: String(err) }, 500);
   }
+  if (!(await isEmptyDatabase(db))) return c.json({ locations: [] });
   return c.json({ locations: demoSeedLocations });
 });
 
@@ -231,9 +234,11 @@ inventoryRouter.get("/items", async (c) => {
       });
       return c.json({ items: filtered });
     }
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat katalog barang", message: String(err) }, 500);
   }
+
+  if (!(await isEmptyDatabase(db))) return c.json({ items: [] });
 
   const filteredDemo = demoSeedInventoryItems.filter((item) => {
     if (typeFilter && item.type !== typeFilter) return false;
@@ -314,9 +319,11 @@ inventoryRouter.get("/asset-units", async (c) => {
       });
       return c.json({ units: filtered });
     }
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat unit aset", message: String(err) }, 500);
   }
+
+  if (!(await isEmptyDatabase(db))) return c.json({ units: [] });
 
   const filteredDemo = demoSeedAssetUnits.filter((u) => {
     if (itemId && u.itemId !== itemId) return false;
@@ -436,9 +443,11 @@ inventoryRouter.get("/loans", async (c) => {
         })),
       });
     }
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat data peminjaman", message: String(err) }, 500);
   }
+
+  if (!(await isEmptyDatabase(db))) return c.json({ loans: [] });
 
   const now = Date.now();
   return c.json({
@@ -562,9 +571,11 @@ inventoryRouter.get("/stock-movements", async (c) => {
       const filtered = itemId ? movements.filter((m) => m.itemId === itemId) : movements;
       return c.json({ movements: filtered });
     }
-  } catch {
-    // fallback to demo seed
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat mutasi stok", message: String(err) }, 500);
   }
+
+  if (!(await isEmptyDatabase(db))) return c.json({ movements: [] });
 
   const filteredDemo = itemId ? demoSeedStockMovements.filter((m) => m.itemId === itemId) : demoSeedStockMovements;
   return c.json({ movements: filteredDemo });
@@ -629,8 +640,8 @@ inventoryRouter.get("/requisitions", async (c) => {
     });
 
     return c.json({ requisitions: filtered });
-  } catch {
-    return c.json({ requisitions: [] });
+  } catch (err: unknown) {
+    return c.json({ error: "Gagal memuat permintaan barang", message: String(err) }, 500);
   }
 });
 
