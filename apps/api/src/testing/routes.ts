@@ -14,6 +14,15 @@ export const staffRoutes: RouteSpec[] = [
   { method: "DELETE", path: "/api/staff/usr_teacher_test", allow: ["admin"] },
 ];
 
+export const guardianRoutes: RouteSpec[] = [
+  { method: "GET", path: "/api/guardians", allow: ["admin", "teacher"] },
+  { method: "POST", path: "/api/guardians", allow: ["admin"] },
+  { method: "PATCH", path: "/api/guardians/usr_guardian_test", allow: ["admin"] },
+  { method: "DELETE", path: "/api/guardians/usr_guardian_test", allow: ["admin"] },
+  { method: "POST", path: "/api/guardians/usr_guardian_test/students", allow: ["admin"] },
+  { method: "DELETE", path: "/api/guardians/usr_guardian_test/students/usr_student_test", allow: ["admin"] },
+];
+
 export interface RouteSpec {
   method: "GET" | "POST" | "PATCH" | "DELETE";
   path: string;
@@ -22,6 +31,7 @@ export interface RouteSpec {
 
 export const routes: RouteSpec[] = [
   ...staffRoutes,
+  ...guardianRoutes,
   { method: "GET", path: "/api/dashboard/summary", allow: ALL },
 
   { method: "GET", path: "/api/academic/years", allow: ALL },

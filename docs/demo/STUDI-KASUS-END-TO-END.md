@@ -94,7 +94,12 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** dialog menampilkan daftar siswa yang sedang terdaftar di rombel tersebut beserta opsi penambahan siswa dari daftar siswa aktif yang belum terdaftar.
 - **Cek:** pilih salah satu siswa lalu klik **Masukkan**; siswa bertambah di rombel dan jumlah siswa di kartu rombel otomatis terbarui. Tombol **Keluarkan** mengeluarkan siswa dari rombel secara aman.
 
-### 1.8 Terbitkan SPP November 2026
+### 1.8 Pendaftaran dan Manajemen Orang Tua / Wali Siswa
+- **Aksi:** buka menu **Data Orang Tua / Wali**, klik **Tambah Orang Tua / Wali**, masukkan nama lengkap, username login, kontak, password, serta centang siswa asuhan awal (misal siswa yang baru didaftarkan).
+- **Hasil:** akun wali murid terdaftar pada master direktori wali dengan lencana siswa asuhan terkait.
+- **Cek:** klik tombol **Relasi** pada baris wali murid untuk menambah atau melepas tautan siswa asuhan; profil wali murid dapat disunting atau disetel ulang password-nya.
+
+### 1.9 Terbitkan SPP November 2026
 - **Aksi:** buka **Keuangan & SPP** sebagai admin. Penerbitan massal dilakukan melalui API/alat demo:
   ```
   POST /api/finance/batch-generate  { "month": "2026-11" }
@@ -102,12 +107,12 @@ Skenario ini menuntun satu siklus operasional sekolah dari konfigurasi akademik 
 - **Hasil:** 12 tagihan baru dibuat; menjalankan ulang menghasilkan 0 tagihan baru.
 - **Cek:** daftar tagihan memuat invoice November untuk 12 siswa.
 
-### 1.9 Verifikasi bukti transfer
+### 1.10 Verifikasi bukti transfer
 - **Aksi:** cari invoice `INV-2026-10-002` (Budi Santoso) berstatus **Menunggu Verifikasi**, klik **Verifikasi Lunas**.
 - **Hasil:** status berubah menjadi **Lunas**, `paidAt` terisi, dan KPI verifikasi tertunda berkurang.
 - **Cek:** pada dashboard, "Kolektibilitas SPP" naik dari 41,7% menjadi 50% setelah satu tagihan diverifikasi (baseline Oktober).
 
-### 1.10 Audit inventaris
+### 1.11 Audit inventaris
 - **Aksi:** buka **Katalog Inventaris** → tab **Sirkulasi Pinjam**.
 - **Hasil:** pinjaman laptop `AST/2026/2004` berlabel **Terlambat** karena estimasi kembali 22 Oktober 2026 sudah lewat.
 - **Cek:** tab **Habis Pakai** menampilkan penghapus dengan saldo 3 di bawah minimum 5.

@@ -9,6 +9,7 @@ import { ParentPortal } from "./components/ParentPortal";
 import { InventoryManager } from "./components/InventoryManager";
 import { StudentManager } from "./components/StudentManager";
 import { StaffManager } from "./components/StaffManager";
+import { GuardianManager } from "./components/GuardianManager";
 import {
   GraduationCap,
   BookOpen,
@@ -20,6 +21,7 @@ import {
   LayoutDashboard,
   Search,
   Package,
+  UserCheck,
 } from "lucide-react";
 
 const formatShortDate = (value?: string | null) => {
@@ -71,6 +73,7 @@ function MainDashboard() {
   type TabId =
     | "overview"
     | "students"
+    | "guardians"
     | "staff"
     | "academic"
     | "attendance"
@@ -106,7 +109,11 @@ function MainDashboard() {
   const navItems: NavItem[] = [
     { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
     ...(user?.role === "admin"
-      ? [{ id: "staff" as const, label: "Data Guru & Staf", icon: Users }, { id: "students" as const, label: "Data Siswa", icon: GraduationCap }]
+      ? [
+          { id: "staff" as const, label: "Data Guru & Staf", icon: Users },
+          { id: "students" as const, label: "Data Siswa", icon: GraduationCap },
+          { id: "guardians" as const, label: "Data Orang Tua / Wali", icon: UserCheck },
+        ]
       : []),
     { id: "academic", label: "Struktur Akademik", icon: BookOpen },
     { id: "attendance", label: "Presensi Siswa", icon: CalendarCheck },
@@ -312,6 +319,8 @@ function MainDashboard() {
             <StaffManager />
           ) : activeTab === "students" ? (
             <StudentManager />
+          ) : activeTab === "guardians" ? (
+            <GuardianManager />
           ) : activeTab === "academic" ? (
             <AcademicManager />
           ) : activeTab === "attendance" ? (
